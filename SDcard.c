@@ -86,6 +86,27 @@ char is_SDSC=0;
 
 int mmc_R1(void);
 
+
+
+//==============================================================
+//              [MMC locking functions]
+//==============================================================
+
+//mutex for SD card
+static CTL_MUTEX_t MMC_mutex;
+
+static unsigned mmcLock(void){
+  if(0==ctl_mutex_lock(&MMC_mutex,CTL_TIMEOUT_DELAY,10)){
+    return MMC_LOCK_TIMEOUT_ERROR;
+  }
+  return 0; 
+}
+
+static void mmcUnlock(void){
+  ctl_mutex_unlock(&MMC_mutex);
+}
+
+
 //==============================================================
 //              [MMC init functions]
 //==============================================================
@@ -98,7 +119,8 @@ void mmcInit_msp(void){
   //         Din           Inp       0 - off    1 - On -> init in SPI_Init
   //         Clk           Out       -                 -> init in SPI_Init
 
-  
+  //init mutex
+  ctl_mutex_init(&MMC_mutex);
   //deselect card (bring line high)
   CS_HIGH();
   // Chip Select
@@ -119,6 +141,10 @@ void mmcInit_msp(void){
 int mmcInit_card(void){
   int i;
   int resp;
+  //get a lock on the card
+  if((resp=mmcLock())!=0){
+    return resp;
+  }
   //set SPI to slow speed
   SPI_slow();
   //initialization sequence on PowerUp
@@ -131,13 +157,21 @@ int mmcInit_card(void){
     //set SPI to fast speed
     SPI_fast();
     //set block length of card
+    //TODO: this may not be needed, Think deep thoughts
     if(mmcSetBlockLength(512) != MMC_SUCCESS){
+      //unlock card
+      mmcUnlock();
+      //return Error
       return MMC_INIT_ERR_BLOCK_SIZE;
     }
   }
+  //unlock card
+  mmcUnlock();
   //return status
   return resp;
 }
+
+
 
 // set MMC in Idle mode
 int mmcGoIdle(void){
@@ -146,6 +180,10 @@ int mmcGoIdle(void){
   unsigned char extresp[4];
   int i;
 
+  //get a lock on the card
+  if((resp=mmcLock())!=0){
+    return resp;
+  }
   //select card
   CS_LOW();
   //Send Command 0 to put MMC in SPI mode
@@ -158,6 +196,8 @@ int mmcGoIdle(void){
   spiDummyClk();
   //check response
   if(((char)resp)!=MMC_R1_IDLE){
+    //unlock card
+    mmcUnlock();
     return MMC_INIT_ERR_GO_IDLE;
   }
 
@@ -204,6 +244,8 @@ int mmcGoIdle(void){
     }
     //check if card has exited the idle state
     if(resp!=MMC_SUCCESS){
+      //unlock card
+      mmcUnlock();
       return MMC_INIT_ERR_TIMEOUT;
     }
     //SUCCESS!!!!!!!!!
@@ -211,10 +253,14 @@ int mmcGoIdle(void){
   }else{
     //make sure that check pattern matches
     if(extresp[3]!=0xAA){
+      //unlock card
+      mmcUnlock();
       return MMC_INIT_ERR_CHECK_PATTERN;
     }
     //check voltage range
     if((extresp[2]&0x0F)!=(MMC_VHS_27_36>>8)){
+      //unlock card
+      mmcUnlock();
       return MMC_INIT_ERR_VOLTAGE;
     }
     //TODO: maybe send CMD58 to check voltage range
@@ -241,6 +287,8 @@ int mmcGoIdle(void){
     }
     //check if card has exited the idle state or error occurred
     if(resp!=MMC_SUCCESS){
+      //unlock card
+      mmcUnlock();
       return MMC_INIT_ERR_TIMEOUT;
     }
     //start transaction
@@ -263,6 +311,8 @@ int mmcGoIdle(void){
 
     //check if command was successfull
     if(resp!=MMC_SUCCESS){
+      //unlock card
+      mmcUnlock();
       return MMC_INIT_ERR_READ_OCR;
     }
 
@@ -274,6 +324,8 @@ int mmcGoIdle(void){
       //standard capacity
       is_SDSC=1;
     }
+    //unlock card
+    mmcUnlock();
     //SUCCESS!!!!!!!!!
     return MMC_SUCCESS;
   }
