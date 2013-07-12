@@ -38,6 +38,10 @@ const char * SD_error_str(int error){
       return "ERROR CARD BUSY TIMEOUT";
     case MMC_LOCK_TIMEOUT_ERROR:
       return "ERROR LOCK TIMEOUT";
+    case MMC_INVALID_CARD_SIZE:
+      return "ERROR INVALID CARD SIZE";
+    case MMC_CARD_UNIT_ERROR:
+      return "ERROR CARD NOT INITIALIZED";
     //Other errors, Probably from SD card
     default:
       //check for errors from the card
@@ -87,6 +91,7 @@ const char * SD_error_str(int error){
           break;
         }
       }
+      //no match found, unknown
       return "UNKNOWN ERROR";
   }
 }

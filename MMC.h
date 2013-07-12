@@ -2,7 +2,7 @@
 
 #ifndef __MMC_H
 #define __MMC_H
-
+#include <ctl.h>
               
 // Tokens (necessary  because at NPO/IDLE (and CS active) only 0xff is on the data/command line)
 #define MMC_START_DATA_BLOCK_TOKEN          0xFe   // Data token start byte, Start Single Block Read
@@ -65,6 +65,15 @@
 #define MMC_OCR_UHSII              (1ul<<30)        //UHS-II card
 #define MMC_OCR_CCS                (1ul<<30)        //Card Capacity Status, set if SDHC or SDXC
 #define MMC_OCR_STAT               (1ul<<31)        //Card power up status
+
+enum{MMC_FLAG_SDHC=1<<0,MMC_FLAG_SDSC=1<<1,MMC_FLAG_INIT_MSP=1<<2,MMC_FLAG_INIT_CARD=1<<3};
+
+typedef struct{
+  int flags;
+  CTL_MUTEX_t mutex;
+} MMC_STAT_t;
+
+#define mmc_check_size(st)  ((st).flags&(MMC_FLAG_SDHC|MMC_FLAG_SDSC))
 
 
 #endif /* __MMC_H */
