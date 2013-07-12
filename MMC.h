@@ -68,12 +68,14 @@
 
 enum{MMC_FLAG_SDHC=1<<0,MMC_FLAG_SDSC=1<<1,MMC_FLAG_INIT_MSP=1<<2,MMC_FLAG_INIT_CARD=1<<3};
 
+#define MMC_FLAG_SIZE_BITS    (MMC_FLAG_SDHC|MMC_FLAG_SDSC)
+
 typedef struct{
   int flags;
   CTL_MUTEX_t mutex;
 } MMC_STAT_t;
 
-#define mmc_check_size(st)  ((st).flags&(MMC_FLAG_SDHC|MMC_FLAG_SDSC))
+#define mmc_check_size(st)  ((st).flags&(MMC_FLAG_SIZE_BITS))
 
 
 #endif /* __MMC_H */

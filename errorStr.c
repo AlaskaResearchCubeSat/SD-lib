@@ -2,7 +2,7 @@
 
 //return string representation of initialization errors
 //this is good for mmcInit_card and mmcGoIdle functions
-const char* SD_init_error_str(int error){
+/*const char* SD_init_error_str(int error){
   switch(error){
     case MMC_SUCCESS:
       return "SUCCESS";
@@ -21,7 +21,7 @@ const char* SD_init_error_str(int error){
     default:
       return "UNKNOWN ERROR";
   }
-}
+}*/
 
 //return string representation of SD card function errors
 const char * SD_error_str(int error){
@@ -40,8 +40,22 @@ const char * SD_error_str(int error){
       return "ERROR LOCK TIMEOUT";
     case MMC_INVALID_CARD_SIZE:
       return "ERROR INVALID CARD SIZE";
-    case MMC_CARD_UNIT_ERROR:
+    case MMC_CARD_UNINIT_ERROR:
       return "ERROR CARD NOT INITIALIZED";
+    case MMC_MSP_UNINIT_ERROR:
+      return "ERROR PERIPHERALS NOT INITIALIZED";
+    case MMC_INIT_ERR_CHECK_PATTERN:
+      return "ERROR CHECK PATTERN MISMATCH";
+    case MMC_INIT_ERR_VOLTAGE:
+      return "ERROR VOLTAGE RANGE MISMATCH";
+    case MMC_INIT_ERR_GO_IDLE:
+      return "ERROR GO IDLE COMMAND FALED";
+    case MMC_INIT_ERR_TIMEOUT:
+      return "ERROR INITIALIZATION TIMEOUT";
+    case MMC_INIT_ERR_READ_OCR:
+      return "ERROR READ OCR FAILED";
+    case MMC_INIT_ERR_BLOCK_SIZE:
+      return "ERROR SET BLOCK SIZE FAILED";
     //Other errors, Probably from SD card
     default:
       //check for errors from the card

@@ -36,12 +36,14 @@
 #define MMC_DAT_WRITE_ERR               0x0D      //Data rejected due to a Write Error
 
 //software defined return values
-enum{MMC_SUCCESS=0,MMC_TIMEOUT_ERROR=-1,MMC_DMA_TIMEOUT_ERROR=-3,MMC_BUSY_TIMEOUT_ERROR=-4,MMC_LOCK_TIMEOUT_ERROR=-5,MMC_INVALID_CARD_SIZE=-6,MMC_CARD_UNIT_ERROR=-7,MMC_MSP_UNIT_ERROR=-7};
+enum{MMC_SUCCESS=0,MMC_TIMEOUT_ERROR=-1,MMC_DMA_TIMEOUT_ERROR=-3,MMC_BUSY_TIMEOUT_ERROR=-4,
+     MMC_LOCK_TIMEOUT_ERROR=-5,MMC_INVALID_CARD_SIZE=-6,MMC_CARD_UNINIT_ERROR=-7,MMC_MSP_UNINIT_ERROR=-8,
+     MMC_INIT_ERR_CHECK_PATTERN=-9,MMC_INIT_ERR_VOLTAGE=-10,MMC_INIT_ERR_GO_IDLE=-11,MMC_INIT_ERR_TIMEOUT=-12,
+     MMC_INIT_ERR_READ_OCR=-13,MMC_INIT_ERR_BLOCK_SIZE=-14};
 
-//initialization errors
-enum{MMC_INIT_ERR_CHECK_PATTERN=-1,MMC_INIT_ERR_VOLTAGE=-2,MMC_INIT_ERR_GO_IDLE=-3,MMC_INIT_ERR_TIMEOUT=-4,MMC_INIT_ERR_READ_OCR=-5,MMC_INIT_ERR_BLOCK_SIZE=-6};
+enum{MMC_SIZE_UNKNOWN=-1,MMC_SIZE_SDHC=1,MMC_SIZE_SDSC=2};
 
-//TODO: figure out witch functions are needed by subsystems and move the rest
+//TODO: figure out witch functions are needed by subsystems and remove the rest
 
 //initialize ports for the MSP
 void mmcInit_msp(void);
@@ -80,12 +82,24 @@ int mmcErase(unsigned long start,unsigned long end);
 int SD_DMA_is_enabled(void);
 
 //return string representation of initialization errors
-const char* SD_init_error_str(int error);
+//const char* SD_init_error_str(int error);
 
 //return string representation of SD card function errors
 const char * SD_error_str(int error);
 
 //return size in KB from CSD structure
 unsigned long mmcGetCardSize(unsigned char *CSD);
+
+//check if the SD card is initialized
+int mmc_is_init(void);
+
+//get the size of the SD card
+int mmc_size_class(void);
+
+//lock SD card so that other tasks can't access it
+int mmcLock(void);
+
+//unlock SD card so that other tasks can access it
+void mmcUnlock(void);
 
 #endif

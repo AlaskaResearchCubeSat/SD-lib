@@ -86,15 +86,33 @@ MMC_STAT_t mmcStat={0,0};
 
 int mmc_R1(void);
 
-//checks if card and periphal have been initialized
+//==============================================================
+//              [MMC locking functions]
+//==============================================================
+
+//return size of the SD card 
+int mmc_size_class(void){
+  //mask out size bit
+  switch(mmcStat.flags&MMC_FLAG_SIZE_BITS){
+    case MMC_FLAG_SDHC:
+      return MMC_SIZE_SDHC;
+    case MMC_FLAG_SDSC:
+      return MMC_SIZE_SDSC;
+    break;
+    default: 
+      return MMC_SIZE_UNKNOWN;
+  }
+}
+
+//checks if card and periphal have been initialized 
 int mmc_is_init(void){
-  //check periferal
-  if(mmcStat.flags&MMC_FLAG_INIT_MSP){
-    return MMC_MSP_UNIT_ERROR;
+  //check peripheral
+  if(!(mmcStat.flags&MMC_FLAG_INIT_MSP)){
+    return MMC_MSP_UNINIT_ERROR;
   }
   //check card
-  if(mmcStat.flags&MMC_FLAG_INIT_CARD){
-    return MMC_CARD_UNIT_ERROR;
+  if(!(mmcStat.flags&MMC_FLAG_INIT_CARD)){
+    return MMC_CARD_UNINIT_ERROR;
   }
   //success
   return MMC_SUCCESS;
@@ -113,6 +131,10 @@ void mmcUnlock(void){
 //lock mutex, internal version that does not check if card is initialized
 //this is used for init functions where card is usually not initialized
 static int _mmcLock(void){
+  //check if peripherals have been initialized
+  if(!(mmcStat.flags&MMC_FLAG_INIT_MSP)){
+    return MMC_MSP_UNINIT_ERROR;
+  }
   //try to lock mutex
   if(0==ctl_mutex_lock(&mmcStat.mutex,CTL_TIMEOUT_DELAY,10)){
     //return error
@@ -128,18 +150,17 @@ int mmcLock(void){
   //lock card
   resp=_mmcLock();
   //check for error
-  if(!resp){
+  if(resp){
     //return error
     return resp;
   }
   //check if card is initialized
   resp=mmc_is_init();
-  //check for error
-  if(!resp){
+  //check card
+  if(!(mmcStat.flags&MMC_FLAG_INIT_CARD)){
     //unlock mutex
     mmcUnlock();
-    //return error
-    return resp;
+    return MMC_CARD_UNINIT_ERROR;
   }
   //return success
   return MMC_SUCCESS; 
@@ -160,7 +181,7 @@ void mmcInit_msp(void){
   //init mutex
   ctl_mutex_init(&mmcStat.mutex);
   //init flags
-  mmcStat.flags=MMC_FLAG_INIT_CARD;
+  mmcStat.flags=MMC_FLAG_INIT_MSP;
   //deselect card (bring line high)
   CS_HIGH();
   // Chip Select
@@ -183,7 +204,7 @@ int mmcInit_card(void){
   int resp;
   //TODO: perhaps it would be nice to check if multiple tasks are running here and bail if they are not
   //get a lock on the card
-  if((resp=_mmcLock())!=0){
+  if(resp=_mmcLock()){
     return resp;
   }
   //set SPI to slow speed
@@ -222,7 +243,7 @@ int mmcGoIdle(void){
   int i;
 
   //get a lock on the card
-  if((resp=_mmcLock())!=0){
+  if(resp=_mmcLock()){
     return resp;
   }
   //select card
@@ -515,7 +536,7 @@ int mmc_token(void){
 int mmcReadBlock(unsigned long addr, unsigned char *pBuffer){
   int rvalue,resp,size;
   //get a lock on the card
-  if((resp=mmcLock())!=0){
+  if(resp=mmcLock()){
     return resp;
   }
   //check if SDSC card
@@ -560,7 +581,7 @@ int mmcReadBlocks(unsigned long addr,unsigned long count, unsigned char *pBuffer
   unsigned short i;
   int rvalue,rt,resp,size;
   //get a lock on the card
-  if((resp=mmcLock())!=0){
+  if(resp=mmcLock()){
     return resp;
   }
   //check if SDSC card
@@ -625,7 +646,7 @@ int mmcReadBlocks(unsigned long addr,unsigned long count, unsigned char *pBuffer
 int mmcWriteBlock(unsigned long addr,const unsigned char *pBuffer){
   int rvalue,result,resp,size;
   //get a lock on the card
-  if((resp=mmcLock())!=0){
+  if(resp=mmcLock()){
     return resp;
   }
   //check if SDSC card
@@ -684,7 +705,7 @@ char mmcWriteMultiBlock(unsigned long addr, const unsigned char *pBuffer,unsigne
   unsigned char resp;
   unsigned short i;
   //get a lock on the card
-  if((resp=mmcLock())!=0){
+  if(resp=mmcLock()){
     return resp;
   }
   //check if SDSC card
@@ -756,7 +777,7 @@ int mmcWriteMultiBlock(unsigned long addr,const unsigned char *pBuffer,unsigned 
   int resp;
   unsigned short i;
   //get a lock on the card
-  if((resp=mmcLock())!=0){
+  if(resp=mmcLock()){
     return resp;
   }
   //check if SDSC card
@@ -844,7 +865,7 @@ void mmcSendCmd (char cmd, unsigned long data,char crc)
 int mmcSetBlockLength(unsigned long blocklength){
   int rt,resp;
   //get a lock on the card
-  if((resp=mmcLock())!=0){
+  if(resp=mmcLock()){
     return resp;
   }
   // CS = LOW (on)
@@ -866,7 +887,7 @@ int mmcSetBlockLength(unsigned long blocklength){
 int mmcErase(unsigned long start,unsigned long end){
   int rvalue,resp,size;
   //get a lock on the card
-  if((resp=mmcLock())!=0){
+  if(resp=mmcLock()){
     return resp;
   }
   //check if SDSC card
@@ -915,7 +936,7 @@ int mmcErase(unsigned long start,unsigned long end){
 int mmcReadReg(unsigned char reg,unsigned char *buffer){
   int rvalue,resp;
   //get a lock on the card
-  if((resp=mmcLock())!=0){
+  if(resp=mmcLock()){
     return resp;
   }
   //select
