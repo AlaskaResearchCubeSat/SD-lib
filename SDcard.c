@@ -249,7 +249,7 @@ int mmcGoIdle(void){
   //select card
   CS_LOW();
   //Send Command 0 to put MMC in SPI mode
-  mmcSendCmd(MMC_GO_IDLE_STATE,0,0x95);
+  mmcSendCmd(MMC_GO_IDLE_STATE,0,0  x95);
   //Now wait for READY RESPONSE
   resp=mmc_R1();
   //error occurred
