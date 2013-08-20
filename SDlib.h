@@ -48,6 +48,9 @@ enum{MMC_SIZE_UNKNOWN=-1,MMC_SIZE_SDHC=1,MMC_SIZE_SDSC=2};
 //initialize ports for the MSP
 void mmcInit_msp(void);
 
+//force initialization of the card
+int mmcReInit_card(void);
+
 //initialize the card for reading and writing
 int mmcInit_card(void);
 

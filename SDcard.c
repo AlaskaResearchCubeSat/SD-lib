@@ -198,10 +198,14 @@ void mmcInit_msp(void){
   MMC_PxREN1|=MMC_SOMI;
 }
 
-// Initialize mmc card
-int mmcInit_card(void){
+//Force initialization of SD card
+int mmcReInit_card(void){
   int i;
   int resp;
+  //check if MSP430 has been initialized
+  if(!(mmcStat.flags&MMC_FLAG_INIT_MSP)){
+    return MMC_MSP_UNINIT_ERROR;
+  }
   //TODO: perhaps it would be nice to check if multiple tasks are running here and bail if they are not
   //get a lock on the card
   if(resp=_mmcLock()){
@@ -233,7 +237,17 @@ int mmcInit_card(void){
   return resp;
 }
 
-
+// Initialize mmc card
+int mmcInit_card(void){
+  //check if card has already been initialized
+  if(mmc_is_init()==MMC_SUCCESS){
+    //nothing to do
+    return MMC_SUCCESS;
+  }else{
+    //Initialize card
+    return mmcReInit_card();
+  }
+}
 
 // set MMC in Idle mode
 int mmcGoIdle(void){
@@ -249,7 +263,7 @@ int mmcGoIdle(void){
   //select card
   CS_LOW();
   //Send Command 0 to put MMC in SPI mode
-  mmcSendCmd(MMC_GO_IDLE_STATE,0,0  x95);
+  mmcSendCmd(MMC_GO_IDLE_STATE,0,0x95);
   //Now wait for READY RESPONSE
   resp=mmc_R1();
   //error occurred
