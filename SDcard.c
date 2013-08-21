@@ -533,7 +533,7 @@ int mmc_token(void){
 //==============================================================
 
 // read a block beginning at the given address.
-int mmcReadBlock(unsigned long addr, unsigned char *pBuffer){
+int mmcReadBlock(SD_blolck_addr addr, unsigned char *pBuffer){
   int rvalue,resp,size;
   //get a lock on the card
   if(resp=mmcLock()){
@@ -577,7 +577,7 @@ int mmcReadBlock(unsigned long addr, unsigned char *pBuffer){
 }// mmc_read_block
 
 // read out multiple blocks at once
-int mmcReadBlocks(unsigned long addr,unsigned long count, unsigned char *pBuffer){
+int mmcReadBlocks(SD_blolck_addr addr,unsigned long count, unsigned char *pBuffer){
   unsigned short i;
   int rvalue,rt,resp,size;
   //get a lock on the card
@@ -643,7 +643,7 @@ int mmcReadBlocks(unsigned long addr,unsigned long count, unsigned char *pBuffer
 //==============================================================
 
 //write one data block on the SD card
-int mmcWriteBlock(unsigned long addr,const unsigned char *pBuffer){
+int mmcWriteBlock(SD_blolck_addr addr,const unsigned char *pBuffer){
   int rvalue,result,resp,size;
   //get a lock on the card
   if(resp=mmcLock()){
@@ -772,7 +772,7 @@ char mmcWriteMultiBlock(unsigned long addr, const unsigned char *pBuffer,unsigne
 
 
 //write mutiple blocks of data fist block # is given as start
-int mmcWriteMultiBlock(unsigned long addr,const unsigned char *pBuffer,unsigned short blocks){
+int mmcWriteMultiBlock(SD_blolck_addr addr,const unsigned char *pBuffer,unsigned short blocks){
   int rvalue,size;
   int resp;
   unsigned short i;
@@ -884,7 +884,7 @@ int mmcSetBlockLength(unsigned long blocklength){
 } // Set block_length
 
 //erase blocks from start to end
-int mmcErase(unsigned long start,unsigned long end){
+int mmcErase(SD_blolck_addr start,SD_blolck_addr end){
   int rvalue,resp,size;
   //get a lock on the card
   if(resp=mmcLock()){

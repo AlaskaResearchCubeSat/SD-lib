@@ -42,6 +42,8 @@ enum{MMC_SUCCESS=0,MMC_TIMEOUT_ERROR=-1,MMC_DMA_TIMEOUT_ERROR=-3,MMC_BUSY_TIMEOU
      MMC_INIT_ERR_READ_OCR=-13,MMC_INIT_ERR_BLOCK_SIZE=-14};
 
 enum{MMC_SIZE_UNKNOWN=-1,MMC_SIZE_SDHC=1,MMC_SIZE_SDSC=2};
+  
+typedef unsigned long SD_blolck_addr;
 
 //TODO: figure out witch functions are needed by subsystems and remove the rest
 
@@ -61,22 +63,22 @@ int mmcGoIdle(void);
 int mmcSetBlockLength (unsigned long blocklength);
 
 //read a whole block from the card given a block number
-int mmcReadBlock(unsigned long addr, unsigned char *pBuffer);
+int mmcReadBlock(SD_blolck_addr addr, unsigned char *pBuffer);
 
 // write a 512 Byte block given by sector address
-int mmcWriteBlock(unsigned long addr,const unsigned char *pBuffer);
+int mmcWriteBlock(SD_blolck_addr addr,const unsigned char *pBuffer);
 
 //write mutiple blocks at a time
-int mmcWriteMultiBlock(unsigned long addr,const unsigned char *pBuffer,unsigned short blocks);
+int mmcWriteMultiBlock(SD_blolck_addr addr,const unsigned char *pBuffer,unsigned short blocks);
 
 //read multiple blocks at a time
-int mmcReadBlocks(unsigned long addr,unsigned long count, unsigned char *pBuffer);
+int mmcReadBlocks(SD_blolck_addr addr,unsigned long count, unsigned char *pBuffer);
 
 // Read CID or CSD Register into buffer
 int mmcReadReg(unsigned char reg,unsigned char *buffer);
 
 //erase blocks from start to end
-int mmcErase(unsigned long start,unsigned long end);
+int mmcErase(SD_blolck_addr start,SD_blolck_addr end);
 
 //check if DMA is enabled
 int SD_DMA_is_enabled(void);
