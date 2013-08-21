@@ -72,7 +72,7 @@ int mmcWriteBlock(SD_blolck_addr addr,const unsigned char *pBuffer);
 int mmcWriteMultiBlock(SD_blolck_addr addr,const unsigned char *pBuffer,unsigned short blocks);
 
 //read multiple blocks at a time
-int mmcReadBlocks(SD_blolck_addr addr,unsigned long count, unsigned char *pBuffer);
+int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuffer);
 
 // Read CID or CSD Register into buffer
 int mmcReadReg(unsigned char reg,unsigned char *buffer);

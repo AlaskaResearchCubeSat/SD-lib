@@ -249,7 +249,7 @@ int mmcGoIdle(void){
   //select card
   CS_LOW();
   //Send Command 0 to put MMC in SPI mode
-  mmcSendCmd(MMC_GO_IDLE_STATE,0,0  x95);
+  mmcSendCmd(MMC_GO_IDLE_STATE,0,0x95);
   //Now wait for READY RESPONSE
   resp=mmc_R1();
   //error occurred
@@ -577,7 +577,7 @@ int mmcReadBlock(SD_blolck_addr addr, unsigned char *pBuffer){
 }// mmc_read_block
 
 // read out multiple blocks at once
-int mmcReadBlocks(SD_blolck_addr addr,unsigned long count, unsigned char *pBuffer){
+int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuffer){
   unsigned short i;
   int rvalue,rt,resp,size;
   //get a lock on the card
