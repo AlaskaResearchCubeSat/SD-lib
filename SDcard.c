@@ -443,7 +443,7 @@ int mmc_busy(void){
   //not really sure on this one but it seems to need a dummy read
   resp=spiSendByte(DUMMY_CHAR);
   //wait for busy signal to go away
-  for(i=0;i<100;i++){
+  for(i=0;i<400;i++){
     //get byte
     resp=spiSendByte(DUMMY_CHAR);
     //check if busy
@@ -466,15 +466,18 @@ int mmc_R1b(void){
   //check if there was an error
   if(resp==MMC_SUCCESS){
     //wait for busy signal to go away
-    for(i=0;i<100;i++){
+    for(i=0;i<4000;i++){
       //get byte
       resp=spiSendByte(DUMMY_CHAR);
       //check if busy
-      if(resp!=0x00)
+      if(resp!=0x00){
         return rt;
+      }
       //wait a bit
       ctl_timeout_wait(ctl_get_current_time()+2);
     }
+  }else{
+    return rt;
   }
   //card still busy
   return MMC_BUSY_TIMEOUT_ERROR;
