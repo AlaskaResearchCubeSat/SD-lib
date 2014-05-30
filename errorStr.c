@@ -56,6 +56,8 @@ const char * SD_error_str(int error){
       return "ERROR READ OCR FAILED";
     case MMC_INIT_ERR_BLOCK_SIZE:
       return "ERROR SET BLOCK SIZE FAILED";
+    case MMC_CRC_FAIL_ERROR:
+      return "ERROR CRC FAILED";
     //Other errors, Probably from SD card
     default:
       //check for errors from the card

@@ -81,6 +81,8 @@
 
 #include <stdio.h>
 
+//include crc stuff from ARClib
+#include <crc.h>
 
 MMC_STAT_t mmcStat={0,0};
 
@@ -277,6 +279,18 @@ int mmcGoIdle(void){
     return MMC_INIT_ERR_GO_IDLE;
   }
 
+  //start new transaction
+  CS_LOW();
+  //Turn on CRC
+  mmcSendCmd(MMC_CRC_ON_OFF,1,0xFF);
+  //response starts with R1
+  resp=mmc_R1();
+  //TOOD: check response
+  //end transaction
+  CS_HIGH();
+  // Send 8 Clock pulses of delay.
+  spiDummyClk();
+  
   //start new transaction
   CS_LOW();
   //send operating voltage and check pattern
@@ -552,6 +566,8 @@ int mmc_token(void){
 // read a block beginning at the given address.
 int mmcReadBlock(SD_blolck_addr addr, unsigned char *pBuffer){
   int rvalue,resp,size;
+  unsigned short crc_calc,crc;
+  unsigned char crc1,crc2;
   //get a lock on the card
   if(resp=mmcLock()){
     return resp;
@@ -580,9 +596,23 @@ int mmcReadBlock(SD_blolck_addr addr, unsigned char *pBuffer){
     if(((char)(rvalue=mmc_token()))==MMC_START_DATA_BLOCK_TOKEN){
       // clock the actual data transfer and receive the bytes; spi_read automatically finds the Data Block
       rvalue = spiReadFrame(pBuffer,512);
-      // get CRC bytes (not really needed by us, but required by MMC)
-      spiSendByte(DUMMY_CHAR);
-      spiSendByte(DUMMY_CHAR);
+          
+      // get CRC bytes
+      crc1=spiSendByte(DUMMY_CHAR);
+      crc2=spiSendByte(DUMMY_CHAR);
+      
+      //only check CRC if transmission was successful
+      if(!rvalue){
+          //assemble CRC from SD card
+          crc=(((unsigned short)crc1)<<8)|((unsigned short)crc2);
+          //calculate CRC for buffer
+          crc_calc=crc16(pBuffer,512);
+          //check CRC's
+          if(crc!=crc_calc){
+              //CRC mismatch, return error
+              rvalue=MMC_CRC_FAIL_ERROR;
+          }
+      }
     }
   }
   CS_HIGH ();
@@ -597,6 +627,8 @@ int mmcReadBlock(SD_blolck_addr addr, unsigned char *pBuffer){
 int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuffer){
   unsigned short i;
   int rvalue,rt,resp,size;
+  unsigned short crc_calc,crc;
+  unsigned char crc1,crc2;
   //get a lock on the card
   if(resp=mmcLock()){
     return resp;
@@ -626,9 +658,27 @@ int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuff
       if(((char)(rvalue=mmc_token()))==MMC_START_DATA_BLOCK_TOKEN){
         // clock the actual data transfer and receive the bytes
         rvalue = spiReadFrame(pBuffer+i*512,512);
-        // get CRC bytes (not really needed by us, but required by MMC)
-        spiSendByte(DUMMY_CHAR);
-        spiSendByte(DUMMY_CHAR);
+    
+        // get CRC bytes
+        crc1=spiSendByte(DUMMY_CHAR);
+        crc2=spiSendByte(DUMMY_CHAR);
+        //only check CRC if transmission was successful
+        if(!rvalue){
+            //assemble CRC from SD card
+            crc=(((unsigned short)crc1)<<8)|((unsigned short)crc2);
+            //calculate CRC for buffer
+            crc_calc=crc16(pBuffer,512);
+            //check CRC's
+            if(crc!=crc_calc){
+                //CRC mismatch, return error
+                rvalue=MMC_CRC_FAIL_ERROR;
+                //stop transmission
+                break;
+            }
+        }else{
+            //there was an error
+            break;
+        }
       }else{
         // the data token was never received
         //abort
@@ -662,6 +712,7 @@ int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuff
 //write one data block on the SD card
 int mmcWriteBlock(SD_blolck_addr addr,const unsigned char *pBuffer){
   int rvalue,result,resp,size;
+  unsigned short crc;
   //get a lock on the card
   if(resp=mmcLock()){
     return resp;
@@ -690,10 +741,12 @@ int mmcWriteBlock(SD_blolck_addr addr,const unsigned char *pBuffer){
     spiSendByte(MMC_START_DATA_BLOCK_WRITE);
     // clock the actual data transfer and transmit the bytes
     result=spiSendFrame(pBuffer,512);
+    
+    crc=crc16(pBuffer,512);
 
-    // put CRC bytes (not really needed by us, but required by MMC)
-    spiSendByte(DUMMY_CHAR);
-    spiSendByte(DUMMY_CHAR);
+    // put CRC bytes 
+    spiSendByte(crc>>8);        //MSB
+    spiSendByte(crc);           //LSB
     //get data response
     rvalue=mmc_dat_resp(); 
     //check if data was accepted CRC not used so ignore CRC error
@@ -758,9 +811,11 @@ char mmcWriteMultiBlock(unsigned long addr, const unsigned char *pBuffer,unsigne
         
         spiSendFrame(pBuffer+i*512,512);
         
-        // put CRC bytes (not really needed by us, but required by MMC)
-        spiSendByte(DUMMY_CHAR);
-        spiSendByte(DUMMY_CHAR);
+        crc=crc16(pBuffer,512);
+
+        // put CRC bytes 
+        spiSendByte(crc>>8);        //MSB
+        spiSendByte(crc);           //LSB
         //get data response
         rvalue=mmc_dat_resp(); 
         //TODO : handle errors accordingly
@@ -792,7 +847,8 @@ char mmcWriteMultiBlock(unsigned long addr, const unsigned char *pBuffer,unsigne
 int mmcWriteMultiBlock(SD_blolck_addr addr,const unsigned char *pBuffer,unsigned short blocks){
   int rvalue,size;
   int resp;
-  unsigned short i;
+  unsigned short crc;
+  unsigned int i;
   //get a lock on the card
   if(resp=mmcLock()){
     return resp;
@@ -825,9 +881,11 @@ int mmcWriteMultiBlock(SD_blolck_addr addr,const unsigned char *pBuffer,unsigned
       
       spiSendFrame(pBuffer+i*512,512);
       
-      // put CRC bytes (not really needed by us, but required by MMC)
-      spiSendByte(DUMMY_CHAR);
-      spiSendByte(DUMMY_CHAR);
+      crc=crc16(pBuffer+i*512,512);
+
+      // put CRC bytes 
+      spiSendByte(crc>>8);        //MSB
+      spiSendByte(crc);           //LSB
       //get data response
       rvalue=mmc_dat_resp(); 
       //an error occurred, abort transmission
@@ -871,7 +929,7 @@ void mmcSendCmd (char cmd, unsigned long data,char crc)
   frame[2]=(data>>(16));
   frame[3]=(data>>(8));
   frame[4]=(data);
-  frame[5]=(crc);
+  frame[5]=crc7(frame,5);
   spiSendFrame(frame,6);
 }
 
