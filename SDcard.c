@@ -450,6 +450,25 @@ int mmc_R1(void){
   return MMC_TIMEOUT_ERROR;
 }
 
+//get R2 response from SD card
+int mmc_R2(void){
+  int i;
+  unsigned char resp,rb2;
+  for(i=0;i<100;i++){
+    resp=spiSendByte(DUMMY_CHAR);
+    //check for R1 response start bit
+    if(!(resp&0x80)){
+        //get byte #2 of response
+        rb2=spiSendByte(DUMMY_CHAR);
+        return (((unsigned short)resp)<<8)|rb2;
+    }
+    //wait a bit
+    ctl_timeout_wait(ctl_get_current_time()+2);
+  }
+  //response not found
+  return MMC_TIMEOUT_ERROR;
+}
+
 //wait for busy signal to go away
 int mmc_busy(void){
   unsigned char resp;
@@ -752,6 +771,17 @@ int mmcWriteBlock(SD_blolck_addr addr,const unsigned char *pBuffer){
     //check if data was accepted CRC not used so ignore CRC error
     if(((char)rvalue)==MMC_DAT_ACCEPTED){
       rvalue=MMC_SUCCESS;
+    }else if(((char)rvalue)==MMC_DAT_CRC){
+      //CRC error, read status to clear error
+      CS_HIGH ();
+      // Send 8 Clock pulses of delay.
+      spiDummyClk();
+      // CS = LOW (on)
+      CS_LOW ();
+      //CRC error, read status to clear
+      mmcSendCmd(MMC_SEND_STATUS,0,0xFF);
+      //get response
+      mmc_R2();
     }
     //check if spiSendFrame was succussfull
     if(result){
@@ -903,6 +933,17 @@ int mmcWriteMultiBlock(SD_blolck_addr addr,const unsigned char *pBuffer,unsigned
       spiSendByte(MMC_STOP_DATA_MULTIPLE_BLOCK_WRITE);
       //wait for completion
       rvalue=mmc_busy();
+    }else if(((char)rvalue)==MMC_DAT_CRC){
+      //CRC error, read status to clear error
+      CS_HIGH ();
+      // Send 8 Clock pulses of delay.
+      spiDummyClk();
+      // CS = LOW (on)
+      CS_LOW ();
+      //CRC error, read status to clear
+      mmcSendCmd(MMC_SEND_STATUS,0,0xFF);
+      //get response
+      mmc_R2();
     }
   }
 
