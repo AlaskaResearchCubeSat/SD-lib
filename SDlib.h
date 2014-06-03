@@ -50,6 +50,9 @@ typedef unsigned long SD_blolck_addr;
 //initialize ports for the MSP
 void mmcInit_msp(void);
 
+//initialize ports with SD card off
+void mmcInit_msp_off(void);
+
 //force initialization of the card
 int mmcReInit_card(void);
 

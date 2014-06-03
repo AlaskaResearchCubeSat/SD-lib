@@ -198,6 +198,30 @@ void mmcInit_msp(void){
   MMC_PxREN1|=MMC_SOMI;
 }
 
+void mmcInit_msp_off(void){
+  //init mutex
+  ctl_mutex_init(&mmcStat.mutex);
+  //init flags
+  mmcStat.flags=0;
+  //set chip select low
+  CS_LOW();
+  // Chip Select direction
+  MMC_CS_PxDIR |= MMC_CS;
+  
+  // Init SPI Module
+  SPIShutdown();
+
+  //setup SPI PINS to drive low
+  MMC_PxOUT1&=~(MMC_SIMO|MMC_SOMI);
+  MMC_PxOUT0&=~(MMC_UCLK);
+  //setup SPI PINS to outputs
+  MMC_PxDIR1|=MMC_SIMO|MMC_SOMI;
+  MMC_PxDIR0|=MMC_UCLK;
+  //setup SPI PINS for GPIO function
+  MMC_PxSEL1&=~(MMC_SIMO|MMC_SOMI);
+  MMC_PxSEL0&=~(MMC_UCLK);
+}
+
 //Force initialization of SD card
 int mmcReInit_card(void){
   int i;

@@ -96,6 +96,12 @@ void SPI_slow(void){
   UCA1CTL1&=~UCSWRST;                     //pull interface out of reset state
 }
 
+//shutdown SPI peripheral
+void SPIShutdown(void){
+  //put peripheral in reset state
+  UCA1CTL1 =UCSWRST;
+}
+
 
 #elif SPI_SER_INTF == SER_INTF_UCB1
 
@@ -122,6 +128,11 @@ void SPI_slow(void){
   UCB1BR0  =80;                           
   UCB1BR1  =0;
   UCB1CTL1&=~UCSWRST;                     //pull interface out of reset state
+}
+
+void SPIShutdown(void){
+  //put peripheral in reset state
+  UCB1CTL1 =UCSWRST;
 }
 
 #endif
