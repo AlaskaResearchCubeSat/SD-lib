@@ -130,13 +130,13 @@ void mmcUnlock(void){
 
 //lock mutex, internal version that does not check if card is initialized
 //this is used for init functions where card is usually not initialized
-static int _mmcLock(void){
+static int _mmcLock(CTL_TIMEOUT_t t,CTL_TIME_t timeout){
   //check if peripherals have been initialized
   if(!(mmcStat.flags&MMC_FLAG_INIT_MSP)){
     return MMC_MSP_UNINIT_ERROR;
   }
   //try to lock mutex
-  if(0==ctl_mutex_lock(&mmcStat.mutex,CTL_TIMEOUT_DELAY,10)){
+  if(0==ctl_mutex_lock(&mmcStat.mutex,t,timeout)){
     //return error
     return MMC_LOCK_TIMEOUT_ERROR;
   }
@@ -145,10 +145,10 @@ static int _mmcLock(void){
 }
 
 //lock mutex and check if card is initialized
-int mmcLock(void){
+int mmcLock(CTL_TIMEOUT_t t,CTL_TIME_t timeout){
   int resp;
   //lock card
-  resp=_mmcLock();
+  resp=_mmcLock(t,timeout);
   //check for error
   if(resp){
     //return error
@@ -232,7 +232,7 @@ int mmcReInit_card(void){
   }
   //TODO: perhaps it would be nice to check if multiple tasks are running here and bail if they are not
   //get a lock on the card
-  if(resp=_mmcLock()){
+  if(resp=_mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //set SPI to slow speed
@@ -281,7 +281,7 @@ int mmcGoIdle(void){
   int i;
 
   //get a lock on the card
-  if(resp=_mmcLock()){
+  if(resp=_mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //select card
@@ -577,7 +577,7 @@ int mmc_token(void){
 int mmcReadBlock(SD_blolck_addr addr, unsigned char *pBuffer){
   int rvalue,resp,size;
   //get a lock on the card
-  if(resp=mmcLock()){
+  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //check if SDSC card
@@ -622,7 +622,7 @@ int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuff
   unsigned short i;
   int rvalue,rt,resp,size;
   //get a lock on the card
-  if(resp=mmcLock()){
+  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //check if SDSC card
@@ -687,7 +687,7 @@ int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuff
 int mmcWriteBlock(SD_blolck_addr addr,const unsigned char *pBuffer){
   int rvalue,result,resp,size;
   //get a lock on the card
-  if(resp=mmcLock()){
+  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //check if SDSC card
@@ -818,7 +818,7 @@ int mmcWriteMultiBlock(SD_blolck_addr addr,const unsigned char *pBuffer,unsigned
   int resp;
   unsigned short i;
   //get a lock on the card
-  if(resp=mmcLock()){
+  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //check if SDSC card
@@ -906,7 +906,7 @@ void mmcSendCmd (char cmd, unsigned long data,char crc)
 int mmcSetBlockLength(unsigned long blocklength){
   int rt,resp;
   //get a lock on the card
-  if(resp=mmcLock()){
+  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   // CS = LOW (on)
@@ -928,7 +928,7 @@ int mmcSetBlockLength(unsigned long blocklength){
 int mmcErase(SD_blolck_addr start,SD_blolck_addr end){
   int rvalue,resp,size;
   //get a lock on the card
-  if(resp=mmcLock()){
+  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //check if SDSC card
@@ -977,7 +977,7 @@ int mmcErase(SD_blolck_addr start,SD_blolck_addr end){
 int mmcReadReg(unsigned char reg,unsigned char *buffer){
   int rvalue,resp;
   //get a lock on the card
-  if(resp=mmcLock()){
+  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //select

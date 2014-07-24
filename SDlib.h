@@ -3,6 +3,7 @@
 #define __SDLIB_H
 
 #include <msp430.h>  
+#include <ctl.h>
 
 //"response classes" to determine which function returned the response
 #define MMC_R1_RESPONSE         0x0100
@@ -105,7 +106,7 @@ int mmc_is_init(void);
 int mmc_size_class(void);
 
 //lock SD card so that other tasks can't access it
-int mmcLock(void);
+int mmcLock(CTL_TIMEOUT_t t,CTL_TIME_t timeout);
 
 //unlock SD card so that other tasks can access it
 void mmcUnlock(void);
