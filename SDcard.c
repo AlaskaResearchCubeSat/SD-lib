@@ -574,7 +574,7 @@ int mmc_token(void){
 //==============================================================
 
 // read a block beginning at the given address.
-int mmcReadBlock(SD_blolck_addr addr, unsigned char *pBuffer){
+int mmcReadBlock(SD_blolck_addr addr,void *pBuffer){
   int rvalue,resp,size;
   //get a lock on the card
   if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
@@ -618,7 +618,7 @@ int mmcReadBlock(SD_blolck_addr addr, unsigned char *pBuffer){
 }// mmc_read_block
 
 // read out multiple blocks at once
-int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuffer){
+int mmcReadBlocks(SD_blolck_addr addr,unsigned short count,void *pBuffer){
   unsigned short i;
   int rvalue,rt,resp,size;
   //get a lock on the card
@@ -649,7 +649,7 @@ int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuff
       // look for the data token to signify the start of the data
       if(((char)(rvalue=mmc_token()))==MMC_START_DATA_BLOCK_TOKEN){
         // clock the actual data transfer and receive the bytes
-        rvalue = spiReadFrame(pBuffer+i*512,512);
+        rvalue = spiReadFrame(((unsigned char*)pBuffer)+i*512,512);
         // get CRC bytes (not really needed by us, but required by MMC)
         spiSendByte(DUMMY_CHAR);
         spiSendByte(DUMMY_CHAR);
@@ -684,7 +684,7 @@ int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuff
 //==============================================================
 
 //write one data block on the SD card
-int mmcWriteBlock(SD_blolck_addr addr,const unsigned char *pBuffer){
+int mmcWriteBlock(SD_blolck_addr addr,const void *pBuffer){
   int rvalue,result,resp,size;
   //get a lock on the card
   if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
@@ -813,7 +813,7 @@ char mmcWriteMultiBlock(unsigned long addr, const unsigned char *pBuffer,unsigne
 
 
 //write mutiple blocks of data fist block # is given as start
-int mmcWriteMultiBlock(SD_blolck_addr addr,const unsigned char *pBuffer,unsigned short blocks){
+int mmcWriteMultiBlock(SD_blolck_addr addr,const void *pBuffer,unsigned short blocks){
   int rvalue,size;
   int resp;
   unsigned short i;
@@ -847,7 +847,7 @@ int mmcWriteMultiBlock(SD_blolck_addr addr,const unsigned char *pBuffer,unsigned
       spiSendByte(MMC_START_DATA_MULTIPLE_BLOCK_WRITE);
       // clock the actual data transfer and transmit the bytes
       
-      spiSendFrame(pBuffer+i*512,512);
+      spiSendFrame(((unsigned char*)pBuffer)+i*512,512);
       
       // put CRC bytes (not really needed by us, but required by MMC)
       spiSendByte(DUMMY_CHAR);

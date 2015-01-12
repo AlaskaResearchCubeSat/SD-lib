@@ -70,16 +70,16 @@ int mmcGoIdle(void);
 int mmcSetBlockLength (unsigned long blocklength);
 
 //read a whole block from the card given a block number
-int mmcReadBlock(SD_blolck_addr addr, unsigned char *pBuffer);
+int mmcReadBlock(SD_blolck_addr addr,void *pBuffer);
 
 // write a 512 Byte block given by sector address
-int mmcWriteBlock(SD_blolck_addr addr,const unsigned char *pBuffer);
+int mmcWriteBlock(SD_blolck_addr addr,const void *pBuffer);
 
 //write mutiple blocks at a time
-int mmcWriteMultiBlock(SD_blolck_addr addr,const unsigned char *pBuffer,unsigned short blocks);
+int mmcWriteMultiBlock(SD_blolck_addr addr,const void *pBuffer,unsigned short blocks);
 
 //read multiple blocks at a time
-int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuffer);
+int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, void *pBuffer);
 
 // Read CID or CSD Register into buffer
 int mmcReadReg(unsigned char reg,unsigned char *buffer);
