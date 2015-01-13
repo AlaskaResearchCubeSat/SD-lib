@@ -54,6 +54,9 @@ void mmcInit_msp(void);
 //initialize ports with SD card off
 void mmcInit_msp_off(void);
 
+//re-initialize ports after they have been turned off
+void mmcInit_msp_on(void);
+
 //force initialization of the card
 int mmcReInit_card(void);
 

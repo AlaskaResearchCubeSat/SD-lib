@@ -170,16 +170,9 @@ int mmcLock(CTL_TIMEOUT_t t,CTL_TIME_t timeout){
 //              [MMC init functions]
 //==============================================================
 
-// Initialize ports and pins for MMC opperation
-void mmcInit_msp(void){
-  // Port x Function           Dir       On/Off
-  //         mmcCS         Out       0 - Active 1 - none Active
-  //         Dout          Out       0 - off    1 - On -> init in SPI_Init
-  //         Din           Inp       0 - off    1 - On -> init in SPI_Init
-  //         Clk           Out       -                 -> init in SPI_Init
 
-  //init mutex
-  ctl_mutex_init(&mmcStat.mutex);
+// Initialize ports and pins for MMC opperation
+void mmcInit_msp_on(void){
   //init flags
   mmcStat.flags=MMC_FLAG_INIT_MSP;
   //deselect card (bring line high)
@@ -198,9 +191,24 @@ void mmcInit_msp(void){
   MMC_PxREN1|=MMC_SOMI;
 }
 
-void mmcInit_msp_off(void){
+//init msp ports and pins and setup MUTEX
+//because this initializes the MUTEX it should only be called ONCE (usually in main)
+void mmcInit_msp(void){
+  // Port x Function           Dir       On/Off
+  //         mmcCS         Out       0 - Active 1 - none Active
+  //         Dout          Out       0 - off    1 - On -> init in SPI_Init
+  //         Din           Inp       0 - off    1 - On -> init in SPI_Init
+  //         Clk           Out       -                 -> init in SPI_Init
+
   //init mutex
   ctl_mutex_init(&mmcStat.mutex);
+  //setup everything else
+  mmcInit_msp_on();
+}
+
+void mmcInit_msp_off(void){
+  //wait for card to not be in use
+  _mmcLock(CTL_TIMEOUT_NONE,0);
   //init flags
   mmcStat.flags=0;
   //set chip select low
@@ -220,7 +228,11 @@ void mmcInit_msp_off(void){
   //setup SPI PINS for GPIO function
   MMC_PxSEL1&=~(MMC_SIMO|MMC_SOMI);
   MMC_PxSEL0&=~(MMC_UCLK);
+  //done with SD card
+  mmcUnlock();
 }
+
+
 
 //Force initialization of SD card
 int mmcReInit_card(void){
