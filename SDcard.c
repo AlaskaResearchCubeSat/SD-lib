@@ -172,7 +172,7 @@ int mmcLock(CTL_TIMEOUT_t t,CTL_TIME_t timeout){
 
 
 // Initialize ports and pins for MMC opperation
-void mmcInit_msp_on(void){
+void mmc_pins_on(void){
   //init flags
   mmcStat.flags=MMC_FLAG_INIT_MSP;
   //deselect card (bring line high)
@@ -203,13 +203,11 @@ void mmcInit_msp(void){
   //init mutex
   ctl_mutex_init(&mmcStat.mutex);
   //setup everything else
-  mmcInit_msp_on();
+  mmc_pins_on();
 }
 
-void mmcInit_msp_off(void){
-  //wait for card to not be in use
-  _mmcLock(CTL_TIMEOUT_NONE,0);
-  //init flags
+void _mmc_pins_off(void){
+    //init flags
   mmcStat.flags=0;
   //set chip select low
   CS_LOW();
@@ -228,8 +226,22 @@ void mmcInit_msp_off(void){
   //setup SPI PINS for GPIO function
   MMC_PxSEL1&=~(MMC_SIMO|MMC_SOMI);
   MMC_PxSEL0&=~(MMC_UCLK);
+}
+
+void mmc_pins_off(void){
+  //wait for card to not be in use
+  _mmcLock(CTL_TIMEOUT_NONE,0);
+  //turn off MMC pins
+  _mmc_pins_off();
   //done with SD card
   mmcUnlock();
+}
+
+void mmcInit_msp_off(void){
+  //init mutex
+  ctl_mutex_init(&mmcStat.mutex);
+  //setup pins with outputs low
+  _mmc_pins_off();
 }
 
 
@@ -586,7 +598,7 @@ int mmc_token(void){
 //==============================================================
 
 // read a block beginning at the given address.
-int mmcReadBlock(SD_blolck_addr addr,void *pBuffer){
+int mmcReadBlock(SD_block_addr addr,void *pBuffer){
   int rvalue,resp,size;
   //get a lock on the card
   if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
@@ -630,7 +642,7 @@ int mmcReadBlock(SD_blolck_addr addr,void *pBuffer){
 }// mmc_read_block
 
 // read out multiple blocks at once
-int mmcReadBlocks(SD_blolck_addr addr,unsigned short count,void *pBuffer){
+int mmcReadBlocks(SD_block_addr addr,unsigned short count,void *pBuffer){
   unsigned short i;
   int rvalue,rt,resp,size;
   //get a lock on the card
@@ -696,7 +708,7 @@ int mmcReadBlocks(SD_blolck_addr addr,unsigned short count,void *pBuffer){
 //==============================================================
 
 //write one data block on the SD card
-int mmcWriteBlock(SD_blolck_addr addr,const void *pBuffer){
+int mmcWriteBlock(SD_block_addr addr,const void *pBuffer){
   int rvalue,result,resp,size;
   //get a lock on the card
   if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
@@ -825,7 +837,7 @@ char mmcWriteMultiBlock(unsigned long addr, const unsigned char *pBuffer,unsigne
 
 
 //write mutiple blocks of data fist block # is given as start
-int mmcWriteMultiBlock(SD_blolck_addr addr,const void *pBuffer,unsigned short blocks){
+int mmcWriteMultiBlock(SD_block_addr addr,const void *pBuffer,unsigned short blocks){
   int rvalue,size;
   int resp;
   unsigned short i;
@@ -937,7 +949,7 @@ int mmcSetBlockLength(unsigned long blocklength){
 } // Set block_length
 
 //erase blocks from start to end
-int mmcErase(SD_blolck_addr start,SD_blolck_addr end){
+int mmcErase(SD_block_addr start,SD_block_addr end){
   int rvalue,resp,size;
   //get a lock on the card
   if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){

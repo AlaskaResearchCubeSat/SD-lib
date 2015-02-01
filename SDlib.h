@@ -44,7 +44,7 @@ enum{MMC_SUCCESS=0,MMC_TIMEOUT_ERROR=-1,MMC_DMA_TIMEOUT_ERROR=-3,MMC_BUSY_TIMEOU
 
 enum{MMC_SIZE_UNKNOWN=-1,MMC_SIZE_SDHC=1,MMC_SIZE_SDSC=2};
   
-typedef unsigned long SD_blolck_addr;
+typedef unsigned long SD_block_addr;
 
 //TODO: figure out witch functions are needed by subsystems and remove the rest
 
@@ -55,7 +55,10 @@ void mmcInit_msp(void);
 void mmcInit_msp_off(void);
 
 //re-initialize ports after they have been turned off
-void mmcInit_msp_on(void);
+void mmc_pins_on(void);
+
+//shut down SD pins after SD card has been initialized
+void mmc_pins_off(void);
 
 //force initialization of the card
 int mmcReInit_card(void);
@@ -73,22 +76,22 @@ int mmcGoIdle(void);
 int mmcSetBlockLength (unsigned long blocklength);
 
 //read a whole block from the card given a block number
-int mmcReadBlock(SD_blolck_addr addr,void *pBuffer);
+int mmcReadBlock(SD_block_addr addr,void *pBuffer);
 
 // write a 512 Byte block given by sector address
-int mmcWriteBlock(SD_blolck_addr addr,const void *pBuffer);
+int mmcWriteBlock(SD_block_addr addr,const void *pBuffer);
 
 //write mutiple blocks at a time
-int mmcWriteMultiBlock(SD_blolck_addr addr,const void *pBuffer,unsigned short blocks);
+int mmcWriteMultiBlock(SD_block_addr addr,const void *pBuffer,unsigned short blocks);
 
 //read multiple blocks at a time
-int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, void *pBuffer);
+int mmcReadBlocks(SD_block_addr addr,unsigned short count, void *pBuffer);
 
 // Read CID or CSD Register into buffer
 int mmcReadReg(unsigned char reg,unsigned char *buffer);
 
 //erase blocks from start to end
-int mmcErase(SD_blolck_addr start,SD_blolck_addr end);
+int mmcErase(SD_block_addr start,SD_block_addr end);
 
 //check if DMA is enabled
 int SD_DMA_is_enabled(void);
