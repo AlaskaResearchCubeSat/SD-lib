@@ -184,11 +184,27 @@ void mmc_pins_on(void){
   SPISetup();
 
   //setup SPI PINS for SPI function
-  MMC_PxSEL1|=MMC_SIMO|MMC_SOMI;
-  MMC_PxSEL0|=MMC_UCLK;
+  MMC_PxSEL|=MMC_SIMO|MMC_SOMI|MMC_UCLK;
   //enable pullup on SOMI pin
-  MMC_PxOUT1|=MMC_SOMI;
-  MMC_PxREN1|=MMC_SOMI;
+  MMC_PxOUT|=MMC_SOMI;
+  MMC_PxREN|=MMC_SOMI;
+}
+
+//map module to pins
+void mmcPmap(void){
+  //========[setup port mapping]=======
+  //unlock registers
+  PMAPKEYID=PMAPKEY;
+  //allow reconfiguration
+  PMAPCTL|=PMAPRECFG;
+  //setup SIMO
+  MMC_PMAP_SIMO=MMC_PM_SIMO;
+  //setup SOMI
+  MMC_PMAP_SOMI=MMC_PM_SOMI;
+  //setup SIMO
+  MMC_PMAP_UCLK=MMC_PM_UCLK;
+  //lock the Port map module
+  PMAPKEYID=0;
 }
 
 //init msp ports and pins and setup MUTEX
@@ -199,6 +215,7 @@ void mmcInit_msp(void){
   //         Dout          Out       0 - off    1 - On -> init in SPI_Init
   //         Din           Inp       0 - off    1 - On -> init in SPI_Init
   //         Clk           Out       -                 -> init in SPI_Init
+
 
   //init mutex
   ctl_mutex_init(&mmcStat.mutex);
@@ -218,14 +235,11 @@ void _mmc_pins_off(void){
   SPIShutdown();
 
   //setup SPI PINS to drive low
-  MMC_PxOUT1&=~(MMC_SIMO|MMC_SOMI);
-  MMC_PxOUT0&=~(MMC_UCLK);
+  MMC_PxOUT&=~(MMC_SIMO|MMC_SOMI|MMC_UCLK);
   //setup SPI PINS to outputs
-  MMC_PxDIR1|=MMC_SIMO|MMC_SOMI;
-  MMC_PxDIR0|=MMC_UCLK;
+  MMC_PxDIR|=MMC_SIMO|MMC_SOMI|MMC_UCLK;
   //setup SPI PINS for GPIO function
-  MMC_PxSEL1&=~(MMC_SIMO|MMC_SOMI);
-  MMC_PxSEL0&=~(MMC_UCLK);
+  MMC_PxSEL&=~(MMC_SIMO|MMC_SOMI|MMC_UCLK);
 }
 
 void mmc_pins_off(void){

@@ -7,7 +7,9 @@
 #define SER_INTF_UCA0  3
 #define SER_INTF_UCA1  4
 #define SER_INTF_UCB0  5
-#define SER_INTF_UCB1  6 
+#define SER_INTF_UCB1  6
+#define SER_INTF_UCA2  7
+#define SER_INTF_UCA3  8 
 
 #ifdef SER_USE_UCA0
   #define SPI_SER_INTF  SER_INTF_UCA0
@@ -25,80 +27,117 @@
   #define SPI_SER_INTF  SER_INTF_UCB1
 #endif
 
+#ifdef SER_USE_UCA2
+  #define SPI_SER_INTF  SER_INTF_UCA2
+#endif
+
+#ifdef SER_USE_UCA3
+  #define SPI_SER_INTF  SER_INTF_UCA3
+#endif
+
+#define UCAxCTLW0_OFFSET      0X00
+#define UCAxBRW_OFFSET        0X06
+#define UCAxSTATW_OFFSET      0X0A
+#define UCAxRXBUF_OFFSET      0Ch
+#define UCAxTXBUF_OFFSET      0x0E
+#define UCAxIE_OFFSET         0x1A 
+#define UCAxIFG_OFFSET        0x1C 
+#define UCAxIV_OFFSET         0x1E 
  
-#if SPI_SER_INTF ==  SER_INTF_UCA1                     
-                                    
-// SPI port definitions   UCA1    
-#define MMC_PxSEL1        P3SEL      
-#define MMC_PxOUT1        P3OUT
-#define MMC_PxREN1        P3REN
-#define MMC_PxDIR1        P3DIR
-  
-#define MMC_PxSEL0        P5SEL    
-#define MMC_PxOUT0        P5OUT
-#define MMC_PxREN0        P5REN
-#define MMC_PxDIR0        P5DIR
-  
-#define MMC_SIMO          BIT6       //P3.6
-#define MMC_SOMI          BIT7       //P3.7
-#define MMC_UCLK          BIT0       //P5.0
+
+// SPI pin definitions due to portmaping all variants use the same pins
+#define MMC_PxSEL        P4SEL0    
+#define MMC_PxOUT        P4OUT
+#define MMC_PxREN        P4REN
+#define MMC_PxDIR        P4DIR 
+
+#define MMC_SIMO          BIT7  //P4.7
+#define MMC_SOMI          BIT5  //P4.5
+#define MMC_UCLK          BIT6  //P4.6
+
+#define MMC_PMAP_SIMO     P4MAP7
+#define MMC_PMAP_SOMI     P4MAP5
+#define MMC_PMAP_UCLK     P4MAP6
 
 // Chip Select
-#define MMC_CS_PxOUT      P3OUT
-#define MMC_CS_PxDIR      P3DIR
-#define MMC_CS            BIT3      //use P3.3 for CS
+#define MMC_CS_PxOUT      P5OUT
+#define MMC_CS_PxDIR      P5DIR
+#define MMC_CS            BIT0  //use P5.0 for CS
 
+#if SPI_SER_INTF ==  SER_INTF_UCA1                     
 
-//define SPI registers for UCA1
+#define SPI_BASE          (&UCA1CTLW0)
+
+  //port mapping values
+  #define MMC_PM_SIMO     PM_UCA1SIMO
+  #define MMC_PM_SOMI     PM_UCA1SOMI
+  #define MMC_PM_UCLK     PM_UCA1CLK
+
+  //define SPI registers for UCA1
  #define SPIRXBUF        UCA1RXBUF
  #define SPITXBUF        UCA1TXBUF
  #define SPI_SEND(x)     (UCA1TXBUF=x)
- #define SPITXREADY      (UC1IFG&UCA1TXIFG)               /* Wait for TX to be ready */
- #define SPITXDONE       (!(UCA1STAT&UCBUSY))            /* Wait for TX to finish */
- #define SPIRXREADY      (UC1IFG&UCA1RXIFG)              /* Wait for TX to be ready */
- #define SPIRXFG_CLR     (UC1IFG &= ~UCA1RXIFG)
- #define SPIFG_CLR       (UC1IFG&=~(UCA1RXIFG|UCA1TXIFG))
- #define SPI_PxIN        SPI_USART1_PxIN
- #define SPI_SOMI        SPI_USART1_SOMI
+ #define SPITXREADY      (UCA1IFG&UCTXIFG)               /* Wait for TX to be ready */
+ #define SPITXDONE       (!(UCA1STATW&UCBUSY))            /* Wait for TX to finish */
+ #define SPIRXREADY      (UCA1IFG&UCRXIFG)              /* Wait for TX to be ready */
+ #define SPIRXFG_CLR     (UCA1IFG &= ~UCRXIFG)
+ #define SPIFG_CLR       (UCA1IFG&=~(UCRXIFG|UCTXIFG))
 
 #elif  SPI_SER_INTF == SER_INTF_UCB1
 
-  // SPI port definitions   UCB1     
-  #define MMC_PxSEL1        P5SEL    
-  #define MMC_PxOUT1        P5OUT
-  #define MMC_PxREN1        P5REN
-  #define MMC_PxDIR1        P5DIR
-  //two seperate ports needed because UCA1 is split across two ports
-  //becasue UCB1 is all on one port the above deffinitions are repeated here
-  #define MMC_PxSEL0        P5SEL    
-  #define MMC_PxOUT0        P5OUT
-  #define MMC_PxREN0        P5REN
-  #define MMC_PxDIR0        P5DIR
+  //port mapping values
+  #define MMC_PM_SIMO     PM_UCB1SIMO
+  #define MMC_PM_SOMI     PM_UCB1SOMI
+  #define MMC_PM_UCLK     PM_UCB1CLK
 
-  #define MMC_SIMO          BIT1  //P5.1
-  #define MMC_SOMI          BIT2  //P5.2
-  #define MMC_UCLK          BIT3  //P5.3
-
-  // Chip Select
-  #define MMC_CS_PxOUT      P3OUT
-  #define MMC_CS_PxDIR      P3DIR
-  #define MMC_CS            BIT3  //use P3.3 for CS
-
-  //define SPI registers for UCA1
+  //define SPI registers for UCB1
   #define SPIRXBUF        UCB1RXBUF
   #define SPITXBUF        UCB1TXBUF 
   #define SPI_SEND(x)     (UCB1TXBUF=x)         
-  #define SPITXREADY      (UC1IFG&UCB1TXIFG)        /* Wait for TX to be ready */
-  #define SPITXDONE       (!(UCB1STAT&UCBUSY))      /* Wait for TX to finish */
-  #define SPIRXREADY      (UC1IFG&UCB1RXIFG)        /* Wait for TX to be ready */
-  #define SPIRXFG_CLR     (UC1IFG&=~UCB1RXIFG)      
-  #define SPIFG_CLR       (UC1IFG&=~(UCB1RXIFG|UCB1TXIFG))
-  #define SPI_PxIN        SPI_USART1_PxIN  
-  #define SPI_SOMI        SPI_USART1_SOMI      
+  #define SPITXREADY      (UCB1IFG&UCTXIFG)        /* Wait for TX to be ready */
+  #define SPITXDONE       (!(UCB1STATW&UCBUSY))      /* Wait for TX to finish */
+  #define SPIRXREADY      (UCB1IFG&UCRXIFG)        /* Wait for TX to be ready */
+  #define SPIRXFG_CLR     (UCB1IFG&=~UCRXIFG)      
+  #define SPIFG_CLR       (UCB1IFG&=~(UCRXIFG|UCTXIFG))  
   
-  #ifdef withDMA
-    #error there is no DMA channel for UCB1 so withDMA can not be used
-  #endif
+#elif  SPI_SER_INTF == SER_INTF_UCA2
+
+  //port mapping values
+  #define MMC_PM_SIMO     PM_UCA2SIMO
+  #define MMC_PM_SOMI     PM_UCA2SOMI
+  #define MMC_PM_UCLK     PM_UCA2CLK
+
+  #define SPI_BASE          (&UCA2CTLW0)
+
+  //define SPI registers for UCA2
+  #define SPIRXBUF        UCA2RXBUF
+  #define SPITXBUF        UCB1TXBUF 
+  #define SPI_SEND(x)     (UCA2TXBUF=x)         
+  #define SPITXREADY      (UCA2IFG&UCTXIFG)        /* Wait for TX to be ready */
+  #define SPITXDONE       (!(UCA2STATW&UCBUSY))      /* Wait for TX to finish */
+  #define SPIRXREADY      (UCA2IFG&UCRXIFG)        /* Wait for TX to be ready */
+  #define SPIRXFG_CLR     (UCA2IFG&=~UCRXIFG)      
+  #define SPIFG_CLR       (UCA2IFG&=~(UCRXIFG|UCTXIFG))    
+  
+#elif  SPI_SER_INTF == SER_INTF_UCA3
+
+  //port mapping values
+  #define MMC_PM_SIMO     PM_UCA3SIMO
+  #define MMC_PM_SOMI     PM_UCA3SOMI
+  #define MMC_PM_UCLK     PM_UCA3CLK
+  
+  #define SPI_BASE          (&UCA3CTLW0)
+
+  //define SPI registers for UCA3
+  #define SPIRXBUF        UCA3RXBUF
+  #define SPITXBUF        UCA3TXBUF 
+  #define SPI_SEND(x)     (UCA3TXBUF=x)         
+  #define SPITXREADY      (UCA3IFG&UCTXIFG)        /* Wait for TX to be ready */
+  #define SPITXDONE       (!(UCA3STATW&UCBUSY))      /* Wait for TX to finish */
+  #define SPIRXREADY      (UCA3IFG&UCRXIFG)        /* Wait for TX to be ready */
+  #define SPIRXFG_CLR     (UCA3IFG&=~UCRXIFG)      
+  #define SPIFG_CLR       (UCA3IFG&=~(UCRXIFG|UCTXIFG))    
+
   
 #else
   #ifndef SPI_SER_INTF
