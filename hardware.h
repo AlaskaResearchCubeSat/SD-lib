@@ -36,13 +36,13 @@
 #endif
 
 #define UCAxCTLW0_OFFSET      0X00
-#define UCAxBRW_OFFSET        0X06
-#define UCAxSTATW_OFFSET      0X0A
-#define UCAxRXBUF_OFFSET      0Ch
-#define UCAxTXBUF_OFFSET      0x0E
-#define UCAxIE_OFFSET         0x1A 
-#define UCAxIFG_OFFSET        0x1C 
-#define UCAxIV_OFFSET         0x1E 
+#define UCAxBRW_OFFSET        0X03
+#define UCAxSTATW_OFFSET      0X05
+#define UCAxRXBUF_OFFSET      0x06
+#define UCAxTXBUF_OFFSET      0x07
+#define UCAxIE_OFFSET         0x0D 
+#define UCAxIFG_OFFSET        0x0E 
+#define UCAxIV_OFFSET         0x0F 
  
 
 // SPI pin definitions due to portmaping all variants use the same pins
