@@ -83,6 +83,9 @@
  #define SPIRXFG_CLR     (UCA1IFG &= ~UCRXIFG)
  #define SPIFG_CLR       (UCA1IFG&=~(UCRXIFG|UCTXIFG))
 
+  //define ISR name
+  #define SPI_VECTOR      USCI_A1_VECTOR
+
 #elif  SPI_SER_INTF == SER_INTF_UCB1
 
   //port mapping values
@@ -99,6 +102,9 @@
   #define SPIRXREADY      (UCB1IFG&UCRXIFG)        /* Wait for TX to be ready */
   #define SPIRXFG_CLR     (UCB1IFG&=~UCRXIFG)      
   #define SPIFG_CLR       (UCB1IFG&=~(UCRXIFG|UCTXIFG))  
+
+  //define ISR name
+  #define SPI_VECTOR      USCI_B1_VECTOR
   
 #elif  SPI_SER_INTF == SER_INTF_UCA2
 
@@ -118,6 +124,9 @@
   #define SPIRXREADY      (UCA2IFG&UCRXIFG)        /* Wait for TX to be ready */
   #define SPIRXFG_CLR     (UCA2IFG&=~UCRXIFG)      
   #define SPIFG_CLR       (UCA2IFG&=~(UCRXIFG|UCTXIFG))    
+
+  //define ISR name
+  #define SPI_VECTOR      USCI_A2_VECTOR
   
 #elif  SPI_SER_INTF == SER_INTF_UCA3
 
@@ -137,6 +146,9 @@
   #define SPIRXREADY      (UCA3IFG&UCRXIFG)        /* Wait for TX to be ready */
   #define SPIRXFG_CLR     (UCA3IFG&=~UCRXIFG)      
   #define SPIFG_CLR       (UCA3IFG&=~(UCRXIFG|UCTXIFG))    
+  
+  //define ISR name
+  #define SPI_VECTOR      USCI_A3_VECTOR
 
   
 #else
