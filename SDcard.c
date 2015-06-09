@@ -191,7 +191,7 @@ void mmc_pins_on(void){
 }
 
 //map module to pins
-void mmcPmap(void){
+void _mmc_pins_map(void){
   //========[setup port mapping]=======
   //unlock registers
   PMAPKEYID=PMAPKEY;
@@ -219,6 +219,8 @@ void mmcInit_msp(void){
 
   //init mutex
   ctl_mutex_init(&mmcStat.mutex);
+  //map pins
+  _mmc_pins_map();
   //setup everything else
   mmc_pins_on();
 }
@@ -254,6 +256,8 @@ void mmc_pins_off(void){
 void mmcInit_msp_off(void){
   //init mutex
   ctl_mutex_init(&mmcStat.mutex);
+  //map pins
+  _mmc_pins_map();
   //setup pins with outputs low
   _mmc_pins_off();
 }
