@@ -167,7 +167,8 @@ unsigned char spiReadFrame(unsigned char* pBuffer, unsigned int size)
     #elif SPI_SER_INTF ==  SER_INTF_UCA2
       DMACTL0 |= DMA1TSEL__USCIA2RX|DMA2TSEL__USCIA2TX;
     #elif SPI_SER_INTF ==  SER_INTF_UCA3
-      DMACTL0 |= DMA2TSEL__USCIA3RX|DMA2TSEL__USCIA3TX;
+      //DMACTL0 |= DMA2TSEL__USCIA3RX|DMA2TSEL__USCIA3TX;
+      DMACTL0 |= DMA2TSEL__USCIA3RX|DMA2TSEL_26;      //bug in header DMA2TSEL__USCIA3TX not defined 
     #elif SPI_SER_INTF ==  SER_INTF_UCB1
       DMACTL0 |= DMA1TSEL__USCIB1RX|DMA2TSEL__USCIB1TX;
     #endif
@@ -228,7 +229,8 @@ unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size)
       #elif SPI_SER_INTF ==  SER_INTF_UCA2
         DMACTL0 |= DMA1TSEL__USCIA2TX;
       #elif SPI_SER_INTF ==  SER_INTF_UCA3
-        DMACTL0 |= DMA1TSEL__USCIA3TX;
+        //DMACTL0 |= DMA1TSEL__USCIA3TX;
+        DMACTL0 |= DMA1TSEL_26;      //bug in header DMA2TSEL__USCIA3TX not defined 
       #elif SPI_SER_INTF ==  SER_INTF_UCB1
         DMACTL0 |= DMA1TSEL__USCIB1TX;
       #endif
