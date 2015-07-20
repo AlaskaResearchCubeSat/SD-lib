@@ -93,6 +93,8 @@
   #define MMC_PM_SOMI     PM_UCB1SOMI
   #define MMC_PM_UCLK     PM_UCB1CLK
 
+  #define SPI_BASE          (&UCB1CTLW0)
+
   //define SPI registers for UCB1
   #define SPIRXBUF        UCB1RXBUF
   #define SPITXBUF        UCB1TXBUF 
