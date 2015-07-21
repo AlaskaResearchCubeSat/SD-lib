@@ -68,56 +68,26 @@
 
 // SPI port functions
 
-#if SPI_SER_INTF == SER_INTF_UCB1
-
-//setup SPI with 200kHz clock
-void SPISetup(void){
-  UCB1CTLW0|= UCSWRST;
-  UCB1CTLW0 =UCMST|UCCKPL|UCMSB|UCSYNC|UCSSEL_2|UCSWRST;              // 3-pin, 8-bit SPI master, SMCLK
-  UCB1BRW   =80;
-  UCB1CTLW0&=~UCSWRST;                     //pull interface out of reset state
-}
-
-//set SPI clock speed to 4MHz
-void SPI_fast(void){
-  UCB1CTL1|=UCSWRST;                      //put interface into reset state
-  UCB1BRW  =4;
-  UCB1CTL1&=~UCSWRST;                     //pull interface out of reset state
-}
-
-//set SPI clock speed to 2kHz
-void SPI_slow(void){
-  UCB1CTL1|=UCSWRST;                       //put interface into reset state
-  UCB1BRW  =80;
-  UCB1CTL1&=~UCSWRST;                     //pull interface out of reset state
-}
-
-void SPIShutdown(void){
-  //put peripheral in reset state
-  UCB1CTL1 =UCSWRST;
-}
-
-#else
-
-//setup SPI with 200kHz clock
+//setup SPI with ~200kHz clock
 void SPISetup(void){
   SPI_BASE[UCAxCTLW0_OFFSET] |= UCSWRST;
   SPI_BASE[UCAxCTLW0_OFFSET]  =UCMST|UCCKPL|UCMSB|UCSYNC|UCSSEL_2|UCSWRST;     // 3-pin, 8-bit SPI master, SMCLK
-  SPI_BASE[UCAxBRW_OFFSET]    =80;    
+  SPI_BASE[UCAxBRW_OFFSET]    = 100;    
   SPI_BASE[UCAxCTLW0_OFFSET] &=~UCSWRST;                      //Initialize state machine
 }
 
 //set SPI clock speed to 4MHz
 void SPI_fast(void){
   SPI_BASE[UCAxCTLW0_OFFSET]|=UCSSEL_2;                     //put interface into reset state
-  SPI_BASE[UCAxBRW_OFFSET]   =4;                            //set clock rate
+  //SPI_BASE[UCAxBRW_OFFSET]   =4;                            //set clock rate
+  SPI_BASE[UCAxBRW_OFFSET]   =5;                            //set clock rate
   SPI_BASE[UCAxCTLW0_OFFSET]&=~UCSWRST;                     //pull interface out of reset state
 }
 
 //set SPI clock speed to 200kHz
 void SPI_slow(void){
   SPI_BASE[UCAxCTLW0_OFFSET]|= UCSWRST;                     //put interface into reset state
-  SPI_BASE[UCAxBRW_OFFSET]   =80;                           //set clock rate
+  SPI_BASE[UCAxBRW_OFFSET]   = 100;                         //set clock rate
   SPI_BASE[UCAxCTLW0_OFFSET]&=~UCSWRST;                     //pull interface out of reset state
 }
 
@@ -127,7 +97,6 @@ void SPIShutdown(void){
   SPI_BASE[UCAxCTLW0_OFFSET]|=UCSWRST;
 }
 
-#endif
 
 //Send one byte via SPI
 unsigned char spiSendByte(const unsigned char data){
