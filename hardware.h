@@ -77,7 +77,7 @@
  #define SPIRXBUF        UCA1RXBUF
  #define SPITXBUF        UCA1TXBUF
  #define SPI_SEND(x)     (UCA1TXBUF=x)
- #define SPITXREADY      (UCA1IFG&UCTXIFG)               /* Wait for TX to be ready */
+ #define SPITXREADY      ((UCA1IFG&UCTXIFG)||SPITXDONE)               /* Wait for TX to be ready */
  #define SPITXDONE       (!(UCA1STATW&UCBUSY))            /* Wait for TX to finish */
  #define SPIRXREADY      (UCA1IFG&UCRXIFG)              /* Wait for TX to be ready */
  #define SPIRXFG_CLR     (UCA1IFG &= ~UCRXIFG)
@@ -99,7 +99,7 @@
   #define SPIRXBUF        UCB1RXBUF
   #define SPITXBUF        UCB1TXBUF 
   #define SPI_SEND(x)     (UCB1TXBUF=x)         
-  #define SPITXREADY      (UCB1IFG&UCTXIFG)        /* Wait for TX to be ready */
+  #define SPITXREADY      ((UCB1IFG&UCTXIFG)||SPITXDONE)        /* Wait for TX to be ready */
   #define SPITXDONE       (!(UCB1STATW&UCBUSY))      /* Wait for TX to finish */
   #define SPIRXREADY      (UCB1IFG&UCRXIFG)        /* Wait for TX to be ready */
   #define SPIRXFG_CLR     (UCB1IFG&=~UCRXIFG)      
@@ -121,7 +121,7 @@
   #define SPIRXBUF        UCA2RXBUF
   #define SPITXBUF        UCB1TXBUF 
   #define SPI_SEND(x)     (UCA2TXBUF=x)         
-  #define SPITXREADY      (UCA2IFG&UCTXIFG)        /* Wait for TX to be ready */
+  #define SPITXREADY      ((UCA2IFG&UCTXIFG)||SPITXDONE)        /* Wait for TX to be ready */
   #define SPITXDONE       (!(UCA2STATW&UCBUSY))      /* Wait for TX to finish */
   #define SPIRXREADY      (UCA2IFG&UCRXIFG)        /* Wait for TX to be ready */
   #define SPIRXFG_CLR     (UCA2IFG&=~UCRXIFG)      
@@ -143,7 +143,7 @@
   #define SPIRXBUF        UCA3RXBUF
   #define SPITXBUF        UCA3TXBUF 
   #define SPI_SEND(x)     (UCA3TXBUF=x)         
-  #define SPITXREADY      (UCA3IFG&UCTXIFG)        /* Wait for TX to be ready */
+  #define SPITXREADY      ((UCA3IFG&UCTXIFG)||SPITXDONE)        /* Wait for TX to be ready */
   #define SPITXDONE       (!(UCA3STATW&UCBUSY))      /* Wait for TX to finish */
   #define SPIRXREADY      (UCA3IFG&UCRXIFG)        /* Wait for TX to be ready */
   #define SPIRXFG_CLR     (UCA3IFG&=~UCRXIFG)      
