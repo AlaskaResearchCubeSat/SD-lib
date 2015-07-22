@@ -130,16 +130,21 @@ unsigned char spiReadFrame(unsigned char* pBuffer, unsigned int size)
 #else
     unsigned int e;
     //set DMA flags for spi tx and rx
-    DMACTL0 &=~(DMA1TSEL_15|DMA2TSEL_15);
+    DMACTL0 &=~(DMA1TSEL_15);
+    DMACTL1 &=~(DMA2TSEL_15);
     #if SPI_SER_INTF ==  SER_INTF_UCA1
-      DMACTL0 |= DMA1TSEL__USCIA1RX|DMA2TSEL__USCIA1TX;
+      DMACTL0 |= DMA1TSEL__USCIA1RX;
+      DMACTL1 |= DMA2TSEL__USCIA1TX;
     #elif SPI_SER_INTF ==  SER_INTF_UCA2
-      DMACTL0 |= DMA1TSEL__USCIA2RX|DMA2TSEL__USCIA2TX;
+      DMACTL0 |= DMA1TSEL__USCIA2RX;
+      DMACTL1 |= DMA2TSEL__USCIA2TX;
     #elif SPI_SER_INTF ==  SER_INTF_UCA3
-      //DMACTL0 |= DMA2TSEL__USCIA3RX|DMA2TSEL__USCIA3TX;
-      DMACTL0 |= DMA2TSEL__USCIA3RX|DMA2TSEL_26;      //bug in header DMA2TSEL__USCIA3TX not defined 
+      DMACTL0 |= DMA2TSEL__USCIA3RX;   
+      //DMACTL1 |= DMA2TSEL__USCIA3TX;
+      DMACTL1 |= DMA2TSEL_26;      //bug in header, DMA2TSEL__USCIA3TX not defined 
     #elif SPI_SER_INTF ==  SER_INTF_UCB1
-      DMACTL0 |= DMA1TSEL__USCIB1RX|DMA2TSEL__USCIB1TX;
+      DMACTL0 |= DMA1TSEL__USCIB1RX;
+      DMACTL1 |= DMA2TSEL__USCIB1TX;
     #endif
     // Source DMA address: receive register.
     DMA1SA = (unsigned int)(&SPIRXBUF);
