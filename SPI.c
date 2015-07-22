@@ -141,7 +141,6 @@ unsigned char spiReadFrame(unsigned char* pBuffer, unsigned int size)
     #elif SPI_SER_INTF ==  SER_INTF_UCB1
       DMACTL0 |= DMA1TSEL__USCIB1RX|DMA2TSEL__USCIB1TX;
     #endif
-    DMACTL0 |= (DMA1TSEL_9 |DMA2TSEL_10);
     // Source DMA address: receive register.
     DMA1SA = (unsigned int)(&SPIRXBUF);
     // Destination DMA address: the user data buffer.
