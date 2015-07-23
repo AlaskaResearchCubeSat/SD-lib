@@ -119,7 +119,7 @@
 
   //define SPI registers for UCA2
   #define SPIRXBUF        UCA2RXBUF
-  #define SPITXBUF        UCB1TXBUF 
+  #define SPITXBUF        UCA2TXBUF 
   #define SPI_SEND(x)     (UCA2TXBUF=x)         
   #define SPITXREADY      ((UCA2IFG&UCTXIFG)||SPITXDONE)        /* Wait for TX to be ready */
   #define SPITXDONE       (!(UCA2STATW&UCBUSY))      /* Wait for TX to finish */
