@@ -222,6 +222,8 @@ unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size)
       e=ctl_events_wait(CTL_EVENT_WAIT_ANY_EVENTS_WITH_AUTO_CLEAR,&DMA_events,DMA_EV_SD_SPI,CTL_TIMEOUT_DELAY,1024);         
       //clear SPI rx flag. Needed because RX buffer is not read
       SPIRXFG_CLR;
+      //wait for SPI transaction to complete
+      while(!SPITXDONE);
       //check to see that event happened
       if(!(e&DMA_EV_SD_SPI)){
         //event did not happen, return error
