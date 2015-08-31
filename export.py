@@ -34,8 +34,6 @@ for folder in dirs:
 crossbuild=os.path.join(rowleyPath,path,'bin','crossbuild.exe')
 
 for config in ("UCA1 Release","UCA1 Debug",
-			   "UCA2 Release","UCA2 Debug",
-			   "UCA3 Release","UCA3 Debug",
 			   "UCB1 Release","UCB1 Debug"):
     
 	#build using crossbuild
