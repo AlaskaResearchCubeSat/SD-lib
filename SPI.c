@@ -129,6 +129,10 @@ unsigned char spiReadFrame(unsigned char* pBuffer, unsigned int size)
   }
 #else
     unsigned int e;
+    //disable DMA
+    DMA0CTL&=~DMAEN;
+    DMA1CTL&=~DMAEN;
+    DMA2CTL&=~DMAEN;
     //set DMA flags for spi tx and rx
     DMACTL0 &=~(DMA1TSEL_31|DMA0TSEL_31);
     DMACTL1 &=~(DMA2TSEL_31);
@@ -196,6 +200,9 @@ unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size)
       unsigned int e;
       //TODO: is there a better way??
       while(!SPITXDONE);
+      //disable DMA
+      DMA1CTL&=~DMAEN;
+      DMA2CTL&=~DMAEN;
       // DMA trigger is SPI send
       DMACTL0 &= ~(DMA1TSEL_31);
       #if SPI_SER_INTF ==  SER_INTF_UCA1
