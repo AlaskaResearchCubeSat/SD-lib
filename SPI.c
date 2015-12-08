@@ -138,19 +138,36 @@ unsigned char spiReadFrame(unsigned char* pBuffer, unsigned int size)
     DMACTL1 &=~(DMA2TSEL_31);
     #if SPI_SER_INTF ==  SER_INTF_UCA1
       DMACTL0 |= DMA1TSEL__USCIA1RX|DMA0TSEL__USCIA1TX;
-      DMACTL1 |= DMA2TSEL__USCIA1TX;
+      DMACTL1 |= DMA2TSEL__USCIA1RX;
+      //setup dummy channel: read and write from unused space in the SPI registers
+      *((unsigned int*)&DMA2SA) = EUSCI_A1_BASE + 0x02;
+      *((unsigned int*)&DMA2DA) = EUSCI_A1_BASE + 0x04;
     #elif SPI_SER_INTF ==  SER_INTF_UCA2
       DMACTL0 |= DMA1TSEL__USCIA2RX|DMA0TSEL__USCIA2TX;
-      DMACTL1 |= DMA2TSEL__USCIA2TX;
+      DMACTL1 |= DMA2TSEL__USCIA2RX;
+      //setup dummy channel: read and write from unused space in the SPI registers
+      *((unsigned int*)&DMA2SA) = EUSCI_A2_BASE + 0x02;
+      *((unsigned int*)&DMA2DA) = EUSCI_A2_BASE + 0x04;
     #elif SPI_SER_INTF ==  SER_INTF_UCA3
       //DMACTL0 |= DMA2TSEL__USCIA3RX|DMA0TSEL__USCIA3TX;   
-      //DMACTL1 |= DMA2TSEL__USCIA3TX;
-      DMACTL0 |= DMA2TSEL__USCIA3RX|DMA0TSEL_26;   
-      DMACTL1 |= DMA2TSEL_26;      //bug in header, DMA2TSEL__USCIA3TX not defined 
+      DMACTL1 |= DMA2TSEL__USCIA3RX;
+      DMACTL0 |= DMA2TSEL__USCIA3RX|DMA0TSEL_26;   //bug in header, DMA2TSEL__USCIA3TX not defined     
+      //setup dummy channel: read and write from unused space in the SPI registers
+      *((unsigned int*)&DMA2SA) = EUSCI_A3_BASE + 0x02;
+      *((unsigned int*)&DMA2DA) = EUSCI_A3_BASE + 0x04;
     #elif SPI_SER_INTF ==  SER_INTF_UCB1
       DMACTL0 |= DMA1TSEL__USCIB1RX|DMA0TSEL__USCIB1TX;
-      DMACTL1 |= DMA2TSEL__USCIB1TX;
+      DMACTL1 |= DMA2TSEL__USCIB1RX;
+      //setup dummy channel: read and write from unused space in the SPI registers
+      *((unsigned int*)&DMA2SA) = EUSCI_B1_BASE + 0x02;
+      *((unsigned int*)&DMA2DA) = EUSCI_B1_BASE + 0x04;
     #endif
+    //Setup dummy channel for DMA9 workaround
+    // only one byte
+    DMA2SZ = 1;
+    // Configure the DMA transfer, repeated byte transfer with no increment
+    DMA2CTL = DMADT_4|DMASBDB|DMAEN|DMASRCINCR_0|DMADSTINCR_0;
+
     // Source DMA address: receive register.
     DMA1SA = (unsigned int)(&SPIRXBUF);
     // Destination DMA address: the user data buffer.
@@ -173,6 +190,10 @@ unsigned char spiReadFrame(unsigned char* pBuffer, unsigned int size)
     //wait for event to complete
     //TODO: improve timeout
     e=ctl_events_wait(CTL_EVENT_WAIT_ANY_EVENTS_WITH_AUTO_CLEAR,&DMA_events,DMA_EV_SD_SPI,CTL_TIMEOUT_DELAY,1024);
+    //disable DMA
+    DMA0CTL&=~DMAEN;
+    DMA1CTL&=~DMAEN;
+    DMA2CTL&=~DMAEN;
     //check to see that event happened
     if(!(e&DMA_EV_SD_SPI)){
       //event did not happen, return error
@@ -205,16 +226,40 @@ unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size)
       DMA2CTL&=~DMAEN;
       // DMA trigger is SPI send
       DMACTL0 &= ~(DMA1TSEL_31);
+      DMACTL1 &= ~(DMA2TSEL_31);
       #if SPI_SER_INTF ==  SER_INTF_UCA1
         DMACTL0 |= DMA1TSEL__USCIA1TX;
+        DMACTL1 |= DMA2TSEL__USCIA1TX;
+        //setup dummy channel: read and write from unused space in the SPI registers
+        *((unsigned int*)&DMA2SA) = EUSCI_A1_BASE + 0x02;
+        *((unsigned int*)&DMA2DA) = EUSCI_A1_BASE + 0x04;
       #elif SPI_SER_INTF ==  SER_INTF_UCA2
         DMACTL0 |= DMA1TSEL__USCIA2TX;
+        DMACTL1 |= DMA2TSEL__USCIA2TX;
+        //setup dummy channel: read and write from unused space in the SPI registers
+        *((unsigned int*)&DMA2SA) = EUSCI_A2_BASE + 0x02;
+        *((unsigned int*)&DMA2DA) = EUSCI_A2_BASE + 0x04;
       #elif SPI_SER_INTF ==  SER_INTF_UCA3
         //DMACTL0 |= DMA1TSEL__USCIA3TX;
-        DMACTL0 |= DMA1TSEL_26;      //bug in header DMA2TSEL__USCIA3TX not defined 
+        //DMACTL1 |= DMA2TSEL__USCIA3TX;
+        DMACTL0 |= DMA1TSEL_26;      //bug in header DMA2TSEL__USCIA3TX not defined
+        DMACTL1 |= DMA2TSEL_26;
+        //setup dummy channel: read and write from unused space in the SPI registers
+        *((unsigned int*)&DMA2SA) = EUSCI_A3_BASE + 0x02;
+        *((unsigned int*)&DMA2DA) = EUSCI_A3_BASE + 0x04; 
       #elif SPI_SER_INTF ==  SER_INTF_UCB1
         DMACTL0 |= DMA1TSEL__USCIB1TX;
+        DMACTL1 |= DMA2TSEL__USCIB1TX;
+        //setup dummy channel: read and write from unused space in the SPI registers
+        *((unsigned int*)&DMA2SA) = EUSCI_B1_BASE + 0x02;
+        *((unsigned int*)&DMA2DA) = EUSCI_B1_BASE + 0x04;
       #endif
+      //Setup dummy channel for DMA9 workaround
+      // only one byte
+      DMA2SZ = 1;
+      // Configure the DMA transfer, repeated byte transfer with no increment
+      DMA2CTL = DMADT_4|DMASBDB|DMAEN|DMASRCINCR_0|DMADSTINCR_0;
+
       // Source DMA address: the data buffer.
       DMA1SA = (unsigned short)(&pBuffer[1]);
       // Destination DMA address: the SPI send register.
@@ -228,6 +273,8 @@ unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size)
       //wait for transaction to complete
       //TODO: improve timeout
       e=ctl_events_wait(CTL_EVENT_WAIT_ANY_EVENTS_WITH_AUTO_CLEAR,&DMA_events,DMA_EV_SD_SPI,CTL_TIMEOUT_DELAY,1024);         
+      //disable dummy DMA
+      DMA2CTL&=~DMAEN;
       //clear SPI rx flag. Needed because RX buffer is not read
       SPIRXFG_CLR;
       //wait for SPI transaction to complete
