@@ -130,20 +130,21 @@ unsigned char spiReadFrame(unsigned char* pBuffer, unsigned int size)
 #else
     unsigned int e;
     //set DMA flags for spi tx and rx
-    DMACTL0 &=~(DMA1TSEL_15);
-    DMACTL1 &=~(DMA2TSEL_15);
+    DMACTL0 &=~(DMA1TSEL_31|DMA0TSEL_31);
+    DMACTL1 &=~(DMA2TSEL_31);
     #if SPI_SER_INTF ==  SER_INTF_UCA1
-      DMACTL0 |= DMA1TSEL__USCIA1RX;
+      DMACTL0 |= DMA1TSEL__USCIA1RX|DMA0TSEL__USCIA1TX;
       DMACTL1 |= DMA2TSEL__USCIA1TX;
     #elif SPI_SER_INTF ==  SER_INTF_UCA2
-      DMACTL0 |= DMA1TSEL__USCIA2RX;
+      DMACTL0 |= DMA1TSEL__USCIA2RX|DMA0TSEL__USCIA2TX;
       DMACTL1 |= DMA2TSEL__USCIA2TX;
     #elif SPI_SER_INTF ==  SER_INTF_UCA3
-      DMACTL0 |= DMA2TSEL__USCIA3RX;   
+      //DMACTL0 |= DMA2TSEL__USCIA3RX|DMA0TSEL__USCIA3TX;   
       //DMACTL1 |= DMA2TSEL__USCIA3TX;
+      DMACTL0 |= DMA2TSEL__USCIA3RX|DMA0TSEL_26;   
       DMACTL1 |= DMA2TSEL_26;      //bug in header, DMA2TSEL__USCIA3TX not defined 
     #elif SPI_SER_INTF ==  SER_INTF_UCB1
-      DMACTL0 |= DMA1TSEL__USCIB1RX;
+      DMACTL0 |= DMA1TSEL__USCIB1RX|DMA0TSEL__USCIB1TX;
       DMACTL1 |= DMA2TSEL__USCIB1TX;
     #endif
     // Source DMA address: receive register.
@@ -155,14 +156,14 @@ unsigned char spiReadFrame(unsigned char* pBuffer, unsigned int size)
     // Configure the DMA transfer. single byte transfer with destination increment. enable interrupt on completion
     DMA1CTL = DMADT_0|DMASBDB|DMAEN|DMADSTINCR_3|DMAIE;
     // Source DMA address: constant 0xFF (don't increment)
-    DMA2SA = (unsigned int)(&SPITXBUF);
+    DMA0SA = (unsigned int)(&SPITXBUF);
     // Destination DMA address: the transmit buffer. 
-    DMA2DA = (unsigned int)(&SPITXBUF);
+    DMA0DA = (unsigned int)(&SPITXBUF);
     // Increment the destination address sta
     // The size of the block to be transferred 
-    DMA2SZ = size-1;
+    DMA0SZ = size-1;
     // Configure DMA transfer. single byte transfer with no increment
-    DMA2CTL = DMADT_0|DMASBDB|DMAEN;
+    DMA0CTL = DMADT_0|DMASBDB|DMAEN;
     // Kick off the transfer by sending the first byte
     SPI_SEND(DUMMY_CHAR);
     //wait for event to complete
@@ -196,7 +197,7 @@ unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size)
       //TODO: is there a better way??
       while(!SPITXDONE);
       // DMA trigger is SPI send
-      DMACTL0 &= ~(DMA1TSEL_15);
+      DMACTL0 &= ~(DMA1TSEL_31);
       #if SPI_SER_INTF ==  SER_INTF_UCA1
         DMACTL0 |= DMA1TSEL__USCIA1TX;
       #elif SPI_SER_INTF ==  SER_INTF_UCA2
