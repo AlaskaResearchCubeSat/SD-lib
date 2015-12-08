@@ -3,11 +3,5 @@
 *.hzs
 
 #build directories
-SD-lib UCA1 Debug/
-SD-lib UCA1 Release/
-SD-lib UCA2 Debug/
-SD-lib UCA2 Release/
-SD-lib UCA3 Debug/
-SD-lib UCA3 Release/
-SD-lib UCB1 Debug/
-SD-lib UCB1 Release/
+* UC* Debug/
+* UC* Release/

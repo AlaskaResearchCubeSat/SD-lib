@@ -40,7 +40,7 @@ for config in ("UCA1 Release","UCA1 Debug",
     
 	#build using crossbuild
 	print("Building "+config);
-	rc=subprocess.call([crossbuild,'-config',config,basename+'.hzp'])
+	rc=subprocess.call([crossbuild,'-config',config,'-project','SD-lib',basename+'.hzp'])
 	#check return code
 	if rc!=0:
 		print("Error : project did not build exiting")
@@ -49,6 +49,21 @@ for config in ("UCA1 Release","UCA1 Debug",
 	outname=basename+"_"+"_".join(config.split())+".hza"
 	outpath=os.path.join(lib,outname)
 	inpath=os.path.join(inputDir,os.path.join(basename+" "+config,basename+".hza"))
+	print("Copying "+inpath+" to "+outpath)
+	shutil.copyfile(inpath,outpath)
+
+for config in ("UCA1 Release","UCA1 Debug"):
+	#build using crossbuild
+	print("Building error-only "+config)
+	rc=subprocess.call([crossbuild,'-config',config,'-project','error-only',basename+'.hzp'])
+	#check return code
+	if rc!=0:
+		print("Error : project did not build exiting")
+		exit(rc)
+
+	outname=basename+"_err_"+config.split()[1]+".hza"
+	outpath=os.path.join(lib,outname)
+	inpath=os.path.join(inputDir,os.path.join("error-only "+config,"error-only.hza"))
 	print("Copying "+inpath+" to "+outpath)
 	shutil.copyfile(inpath,outpath)
 
