@@ -327,13 +327,13 @@ int mmcGoIdle(void){
     return resp;
   }
   //select card
-  CS_LOW();
+  SD_SEL();
   //Send Command 0 to put MMC in SPI mode
   mmcSendCmd(MMC_GO_IDLE_STATE,0,0x95);
   //Now wait for READY RESPONSE
   resp=mmc_R1();
   //error occurred
-  CS_HIGH();
+  SD_DESEL();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //check response
@@ -344,7 +344,7 @@ int mmcGoIdle(void){
   }
 
   //start new transaction
-  CS_LOW();
+  SD_SEL();
   //send operating voltage and check pattern
   mmcSendCmd(MMC_SEND_IF_COND,MMC_VHS_27_36|0xAA,0x87);
   //response starts with R1
@@ -355,7 +355,7 @@ int mmcGoIdle(void){
     spiReadFrame(extresp,4);
   }
   //end transaction
-  CS_HIGH();
+  SD_DESEL();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //check for illegal command
@@ -364,7 +364,7 @@ int mmcGoIdle(void){
     //TODO: maybe send CMD58 to check voltage range
     for(i=0,resp=MMC_R1_IDLE;i<50 && resp==MMC_R1_IDLE;i++){
       //start transaction
-      CS_LOW();
+      SD_SEL();
       //next command is application spesific command
       mmcSendCmd(MMC_APP_CMD,0,0xff);
       //get response
@@ -377,7 +377,7 @@ int mmcGoIdle(void){
         resp=mmc_R1();
       }
       //Transaction done
-      CS_HIGH();
+      SD_DESEL();
       // Send 8 Clock pulses of delay.
       spiDummyClk();
       //wait 20 or so ms
@@ -411,7 +411,7 @@ int mmcGoIdle(void){
     //TODO: maybe send CMD58 to check voltage range
     for(i=0,resp=MMC_R1_IDLE;i<50 && ((char)resp)==MMC_R1_IDLE;i++){
       //start transaction
-      CS_LOW();
+      SD_SEL();
       //next command is application spesific command
       mmcSendCmd(MMC_APP_CMD,0,0xff);
       //get response
@@ -424,7 +424,7 @@ int mmcGoIdle(void){
         resp=mmc_R1();
       }
       //Transaction done
-      CS_HIGH();
+      SD_DESEL();
       // Send 8 Clock pulses of delay.
       spiDummyClk();
       //wait 20 or so ms
@@ -437,7 +437,7 @@ int mmcGoIdle(void){
       return MMC_INIT_ERR_TIMEOUT;
     }
     //start transaction
-    CS_LOW();
+    SD_SEL();
     //get response
     resp=mmc_R1();
     //read OCR to check CCS bit
@@ -450,7 +450,7 @@ int mmcGoIdle(void){
       spiReadFrame(extresp,4);
     }
     //Transaction done
-    CS_HIGH();
+    SD_DESEL();
     // Send 8 Clock pulses of delay.
     spiDummyClk();
 
@@ -636,7 +636,7 @@ int mmcReadBlock(SD_block_addr addr,void *pBuffer){
     return MMC_INVALID_CARD_SIZE;
   }  
   // CS = LOW (on)
-  CS_LOW ();
+  SD_SEL ();
   // send read command MMC_READ_SINGLE_BLOCK=CMD17
   mmcSendCmd(MMC_READ_SINGLE_BLOCK,addr, 0xFF);
   //Get R1 response
@@ -651,7 +651,7 @@ int mmcReadBlock(SD_block_addr addr,void *pBuffer){
       spiSendByte(DUMMY_CHAR);
     }
   }
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
@@ -681,7 +681,7 @@ int mmcReadBlocks(SD_block_addr addr,unsigned short count,void *pBuffer){
     return MMC_INVALID_CARD_SIZE;
   }
   // CS = LOW (on)
-  CS_LOW ();
+  SD_SEL ();
   // send read command MMC_READ_SINGLE_BLOCK=CMD17
   mmcSendCmd(MMC_READ_MULTIPLE_BLOCK,addr, 0xFF);
   //Get R1 response from card
@@ -712,7 +712,7 @@ int mmcReadBlocks(SD_block_addr addr,unsigned short count,void *pBuffer){
     }
   }
   //CS = HIGH (off)
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
@@ -746,7 +746,7 @@ int mmcWriteBlock(SD_block_addr addr,const void *pBuffer){
     return MMC_INVALID_CARD_SIZE;
   }
   // CS = LOW (on)
-  CS_LOW ();
+  SD_SEL ();
   // send write command
   mmcSendCmd(MMC_WRITE_BLOCK,addr, 0xFF);
 
@@ -773,7 +773,7 @@ int mmcWriteBlock(SD_block_addr addr,const void *pBuffer){
     }
   }
 
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
@@ -805,7 +805,7 @@ char mmcWriteMultiBlock(unsigned long addr, const unsigned char *pBuffer,unsigne
     return MMC_INVALID_CARD_SIZE;
   }
   // CS = LOW (on)
-  CS_LOW ();
+  SD_SEL ();
   mmcSendCmd(MMC_APP_CMD,0,0xFF);
   resp=mmcGetResponse();
   // send write number of write blocks command
@@ -845,7 +845,7 @@ char mmcWriteMultiBlock(unsigned long addr, const unsigned char *pBuffer,unsigne
     // the MMC never acknowledge the write block count command
     rvalue = MMC_RESPONSE_ERROR;   // 2
   }
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
@@ -877,7 +877,7 @@ int mmcWriteMultiBlock(SD_block_addr addr,const void *pBuffer,unsigned short blo
     return MMC_INVALID_CARD_SIZE;
   }
   // CS = LOW (on)
-  CS_LOW ();
+  SD_SEL ();
   
   // send write command
   mmcSendCmd(MMC_WRITE_MULTIPLE_BLOCK,addr, 0xFF);
@@ -914,7 +914,7 @@ int mmcWriteMultiBlock(SD_block_addr addr,const void *pBuffer,unsigned short blo
     }
   }
 
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
@@ -952,13 +952,13 @@ int mmcSetBlockLength(unsigned long blocklength){
     return resp;
   }
   // CS = LOW (on)
-  CS_LOW ();
+  SD_SEL ();
   // Set the block length to read
   mmcSendCmd(MMC_SET_BLOCKLEN,blocklength,0xFF);
   //get R1 response
   rt=mmc_R1();
   // CS = HIGH (off)
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
@@ -988,7 +988,7 @@ int mmcErase(SD_block_addr start,SD_block_addr end){
     return MMC_INVALID_CARD_SIZE;
   }
   // CS = LOW (on)
-  CS_LOW ();
+  SD_SEL ();
   
   //send erase block start
   mmcSendCmd(MMC_ERASE_WR_BLK_START,start,0xFF);
@@ -1006,7 +1006,7 @@ int mmcErase(SD_block_addr start,SD_block_addr end){
   }
   
   //end transaction
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
@@ -1023,7 +1023,7 @@ int mmcReadReg(unsigned char reg,unsigned char *buffer){
     return resp;
   }
   //select
-  CS_LOW ();
+  SD_SEL ();
   //send read CSD
   mmcSendCmd(reg,0,0xFF);
   //check response
@@ -1037,7 +1037,7 @@ int mmcReadReg(unsigned char reg,unsigned char *buffer){
     }
   }
   //deselect card
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card

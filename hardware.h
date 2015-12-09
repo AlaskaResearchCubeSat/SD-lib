@@ -163,8 +163,12 @@
 
 
 //definitions for chip select pin
-#define CS_LOW()    (MMC_CS_PxOUT &= ~MMC_CS)               // Card Select
+#define CS_LOW()    (MMC_CS_PxOUT &= ~MMC_CS)                   // Card Select
+#define CS_HIGH()   (MMC_CS_PxOUT |= MMC_CS)                    // Card Deselect
+
+//definitions for card select and deselect
+#define SD_SEL()    CS_LOW()                        // Card Select
 //TODO: this seems like bad practice, fix
-#define CS_HIGH()   while(!SPITXDONE); MMC_CS_PxOUT |= MMC_CS  // Card Deselect
+#define SD_DESEL()   while(!SPITXDONE); CS_HIGH()  // Card Deselect
 
 #endif
