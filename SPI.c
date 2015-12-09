@@ -219,8 +219,6 @@ unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size)
   }
 #else
       unsigned int e;
-      //TODO: is there a better way??
-      while(!SPITXDONE);
       //disable DMA
       DMA1CTL&=~DMAEN;
       DMA2CTL&=~DMAEN;
