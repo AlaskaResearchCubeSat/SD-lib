@@ -169,6 +169,6 @@
 //definitions for card select and deselect
 #define SD_SEL()    CS_LOW()                        // Card Select
 //TODO: this seems like bad practice, fix
-#define SD_DESEL()   while(!SPITXDONE); CS_HIGH()  // Card Deselect
+#define SD_DESEL()   CS_HIGH()  // Card Deselect
 
 #endif
