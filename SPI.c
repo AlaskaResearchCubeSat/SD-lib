@@ -274,10 +274,10 @@ unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size)
       e=ctl_events_wait(CTL_EVENT_WAIT_ANY_EVENTS_WITH_AUTO_CLEAR,&DMA_events,DMA_EV_SD_SPI,CTL_TIMEOUT_DELAY,1024);         
       //disable dummy DMA
       DMA2CTL&=~DMAEN;
-      //Needed because RX buffer is not read
-      SPIRXFG_RST;
-      //wait for SPI transaction to complete
-      for(i=0;i<60 && !SPITXDONE;i++);
+      //clear RX flag and set TX flag
+      SPI_BASE[UCAxIFG_OFFSET]=UCTXIFG;
+      //wait while busy bit is set. Loop escape because of USCI41
+      for(i=0;i<60 && SPI_BUSY;i++);
       //check to see that event happened
       if(!(e&DMA_EV_SD_SPI)){
         //event did not happen, return error

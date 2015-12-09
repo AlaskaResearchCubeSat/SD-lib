@@ -157,6 +157,7 @@
   #endif
 #endif
 
+#define SPI_BUSY     (SPI_BASE[UCAxSTATW_OFFSET]&UCBUSY) 
 
 //definitions for chip select pin
 #define CS_LOW()    (MMC_CS_PxOUT &= ~MMC_CS)                   // Card Select
