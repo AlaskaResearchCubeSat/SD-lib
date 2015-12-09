@@ -76,9 +76,9 @@
   //define SPI registers for UCA1
  #define SPIRXBUF        UCA1RXBUF
  #define SPITXBUF        UCA1TXBUF
- #define SPI_SEND(x)     (UCA1TXBUF=x)
+ #define SPI_SEND(x)     do{int t;UCA1TXBUF=x;t=UCA1RXBUF;}while(0)
  #define SPITXREADY      (UCA1IFG&UCTXIFG)               /* Wait for TX to be ready */
- #define SPITXDONE       (!(UCA1STATW&UCBUSY))            /* Wait for TX to finish */
+ #define SPITXDONE       ((SPIRXREADY))          /* Wait for TX to finish */
  #define SPIRXREADY      (UCA1IFG&UCRXIFG)              /* Wait for TX to be ready */
  #define SPIRXFG_CLR     (UCA1IFG &= ~UCRXIFG)
  #define SPIFG_CLR       (UCA1IFG&=~(UCRXIFG|UCTXIFG))
@@ -120,9 +120,9 @@
   //define SPI registers for UCA2
   #define SPIRXBUF        UCA2RXBUF
   #define SPITXBUF        UCA2TXBUF 
-  #define SPI_SEND(x)     (UCA2TXBUF=x)         
+  #define SPI_SEND(x)     do{int t;UCA2TXBUF=x;t=UCA2RXBUF;}while(0)        
   #define SPITXREADY      (UCA2IFG&UCTXIFG)        /* Wait for TX to be ready */
-  #define SPITXDONE       (!(UCA2STATW&UCBUSY))      /* Wait for TX to finish */
+  #define SPITXDONE       ((SPIRXREADY))          /* Wait for TX to finish */
   #define SPIRXREADY      (UCA2IFG&UCRXIFG)        /* Wait for TX to be ready */
   #define SPIRXFG_CLR     (UCA2IFG&=~UCRXIFG)      
   #define SPIFG_CLR       (UCA2IFG&=~(UCRXIFG|UCTXIFG))    
@@ -142,9 +142,9 @@
   //define SPI registers for UCA3
   #define SPIRXBUF        UCA3RXBUF
   #define SPITXBUF        UCA3TXBUF 
-  #define SPI_SEND(x)     (UCA3TXBUF=x)         
+  #define SPI_SEND(x)     do{int t;t=UCA3RXBUF;UCA3TXBUF=x;}while(0)
   #define SPITXREADY      (UCA3IFG&UCTXIFG)        /* Wait for TX to be ready */
-  #define SPITXDONE       (!(UCA3STATW&UCBUSY))      /* Wait for TX to finish */
+  #define SPITXDONE       ((SPIRXREADY))          /* Wait for TX to finish */
   #define SPIRXREADY      (UCA3IFG&UCRXIFG)        /* Wait for TX to be ready */
   #define SPIRXFG_CLR     (UCA3IFG&=~UCRXIFG)      
   #define SPIFG_CLR       (UCA3IFG&=~(UCRXIFG|UCTXIFG))    
