@@ -219,6 +219,7 @@ unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size)
   }
 #else
       unsigned int e;
+      int i;
       //disable DMA
       DMA1CTL&=~DMAEN;
       DMA2CTL&=~DMAEN;
@@ -273,10 +274,10 @@ unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size)
       e=ctl_events_wait(CTL_EVENT_WAIT_ANY_EVENTS_WITH_AUTO_CLEAR,&DMA_events,DMA_EV_SD_SPI,CTL_TIMEOUT_DELAY,1024);         
       //disable dummy DMA
       DMA2CTL&=~DMAEN;
-      //clear SPI rx flag. Needed because RX buffer is not read
-      SPIRXFG_CLR;
+      //Needed because RX buffer is not read
+      SPIRXFG_RST;
       //wait for SPI transaction to complete
-      while(!SPITXDONE);
+      for(i=0;i<60 && !SPITXDONE;i++);
       //check to see that event happened
       if(!(e&DMA_EV_SD_SPI)){
         //event did not happen, return error

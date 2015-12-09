@@ -80,8 +80,7 @@
  #define SPITXREADY      (UCA1IFG&UCTXIFG)               /* Wait for TX to be ready */
  #define SPITXDONE       ((SPIRXREADY))          /* Wait for TX to finish */
  #define SPIRXREADY      (UCA1IFG&UCRXIFG)              /* Wait for TX to be ready */
- #define SPIRXFG_CLR     (UCA1IFG &= ~UCRXIFG)
- #define SPIFG_CLR       (UCA1IFG&=~(UCRXIFG|UCTXIFG))
+ #define SPIRXFG_RST     {int t;t=UCA1RXBUF;}
 
   //define ISR name
   #define SPI_VECTOR      USCI_A1_VECTOR
@@ -102,8 +101,7 @@
   #define SPITXREADY      (UCB1IFG&UCTXIFG)        /* Wait for TX to be ready */
   #define SPITXDONE       (!(UCB1STATW&UCBUSY))      /* Wait for TX to finish */
   #define SPIRXREADY      (UCB1IFG&UCRXIFG)        /* Wait for TX to be ready */
-  #define SPIRXFG_CLR     (UCB1IFG&=~UCRXIFG)      
-  #define SPIFG_CLR       (UCB1IFG&=~(UCRXIFG|UCTXIFG))  
+  #define SPIRXFG_RST     {int t;t=UCB1RXBUF;}     
 
   //define ISR name
   #define SPI_VECTOR      USCI_B1_VECTOR
@@ -124,8 +122,7 @@
   #define SPITXREADY      (UCA2IFG&UCTXIFG)        /* Wait for TX to be ready */
   #define SPITXDONE       ((SPIRXREADY))          /* Wait for TX to finish */
   #define SPIRXREADY      (UCA2IFG&UCRXIFG)        /* Wait for TX to be ready */
-  #define SPIRXFG_CLR     (UCA2IFG&=~UCRXIFG)      
-  #define SPIFG_CLR       (UCA2IFG&=~(UCRXIFG|UCTXIFG))    
+  #define SPIRXFG_RST     {int t;t=UCA2RXBUF;}     
 
   //define ISR name
   #define SPI_VECTOR      USCI_A2_VECTOR
@@ -146,8 +143,7 @@
   #define SPITXREADY      (UCA3IFG&UCTXIFG)        /* Wait for TX to be ready */
   #define SPITXDONE       ((SPIRXREADY))          /* Wait for TX to finish */
   #define SPIRXREADY      (UCA3IFG&UCRXIFG)        /* Wait for TX to be ready */
-  #define SPIRXFG_CLR     (UCA3IFG&=~UCRXIFG)      
-  #define SPIFG_CLR       (UCA3IFG&=~(UCRXIFG|UCTXIFG))    
+  #define SPIRXFG_RST     {int t;t=UCA3RXBUF;}     
   
   //define ISR name
   #define SPI_VECTOR      USCI_A3_VECTOR
