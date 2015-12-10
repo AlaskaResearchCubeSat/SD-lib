@@ -5,6 +5,6 @@
 void mmc_ISR(void) __ctl_interrupt[SPI_VECTOR]{
   int tmp;
   //dummy read to clear flag(s)
-  tmp=SPI_BASE[UCAxIV_OFFSET];
+  tmp=SPI_REG_W(UCAxIV_OFFSET);
 }
 

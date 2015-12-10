@@ -70,31 +70,31 @@
 
 //setup SPI with ~200kHz clock
 void SPISetup(void){
-  SPI_BASE[UCAxCTLW0_OFFSET] |= UCSWRST;
-  SPI_BASE[UCAxCTLW0_OFFSET]  =UCMST|UCCKPL|UCMSB|UCSYNC|UCSSEL_2|UCSWRST;     // 3-pin, 8-bit SPI master, SMCLK
-  SPI_BASE[UCAxBRW_OFFSET]    = 100;    
-  SPI_BASE[UCAxCTLW0_OFFSET] &=~UCSWRST;                      //Initialize state machine
+  SPI_REG_W(UCAxCTLW0_OFFSET) |= UCSWRST;
+  SPI_REG_W(UCAxCTLW0_OFFSET)  =UCMST|UCCKPL|UCMSB|UCSYNC|UCSSEL_2|UCSWRST;     // 3-pin, 8-bit SPI master, SMCLK
+  SPI_REG_W(UCAxBRW_OFFSET)    = 100;    
+  SPI_REG_W(UCAxCTLW0_OFFSET) &=~UCSWRST;                      //Initialize state machine
 }
 
 //set SPI clock speed to 4MHz
 void SPI_fast(void){
-  SPI_BASE[UCAxCTLW0_OFFSET]|=UCSSEL_2;                     //put interface into reset state
-  //SPI_BASE[UCAxBRW_OFFSET]   =4;                            //set clock rate
-  SPI_BASE[UCAxBRW_OFFSET]   =5;                            //set clock rate
-  SPI_BASE[UCAxCTLW0_OFFSET]&=~UCSWRST;                     //pull interface out of reset state
+  SPI_REG_W(UCAxCTLW0_OFFSET)|=UCSSEL_2;                     //put interface into reset state
+  //SPI_REG_W(UCAxBRW_OFFSET)   =4;                            //set clock rate
+  SPI_REG_W(UCAxBRW_OFFSET)   =5;                            //set clock rate
+  SPI_REG_W(UCAxCTLW0_OFFSET)&=~UCSWRST;                     //pull interface out of reset state
 }
 
 //set SPI clock speed to 200kHz
 void SPI_slow(void){
-  SPI_BASE[UCAxCTLW0_OFFSET]|= UCSWRST;                     //put interface into reset state
-  SPI_BASE[UCAxBRW_OFFSET]   = 100;                         //set clock rate
-  SPI_BASE[UCAxCTLW0_OFFSET]&=~UCSWRST;                     //pull interface out of reset state
+  SPI_REG_W(UCAxCTLW0_OFFSET)|= UCSWRST;                     //put interface into reset state
+  SPI_REG_W(UCAxBRW_OFFSET)   = 100;                         //set clock rate
+  SPI_REG_W(UCAxCTLW0_OFFSET)&=~UCSWRST;                     //pull interface out of reset state
 }
 
 //shutdown SPI peripheral
 void SPIShutdown(void){
   //put peripheral in reset state
-  SPI_BASE[UCAxCTLW0_OFFSET]|=UCSWRST;
+  SPI_REG_W(UCAxCTLW0_OFFSET)|=UCSWRST;
 }
 
 
@@ -275,7 +275,7 @@ unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size)
       //disable dummy DMA
       DMA2CTL&=~DMAEN;
       //clear RX flag and set TX flag
-      SPI_BASE[UCAxIFG_OFFSET]=UCTXIFG;
+      SPI_REG_W(UCAxIFG_OFFSET)=UCTXIFG;
       //wait while busy bit is set. Loop escape because of USCI41
       for(i=0;i<60 && SPI_BUSY;i++);
       //check to see that event happened

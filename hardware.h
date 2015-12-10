@@ -36,13 +36,13 @@
 #endif
 
 #define UCAxCTLW0_OFFSET      0X00
-#define UCAxBRW_OFFSET        0X03
-#define UCAxSTATW_OFFSET      0X05
-#define UCAxRXBUF_OFFSET      0x06
-#define UCAxTXBUF_OFFSET      0x07
-#define UCAxIE_OFFSET         0x0D 
-#define UCAxIFG_OFFSET        0x0E 
-#define UCAxIV_OFFSET         0x0F 
+#define UCAxBRW_OFFSET        0X06
+#define UCAxSTATW_OFFSET      0X0A
+#define UCAxRXBUF_OFFSET      0x0C
+#define UCAxTXBUF_OFFSET      0x0E
+#define UCAxIE_OFFSET         0x1A 
+#define UCAxIFG_OFFSET        0x1C 
+#define UCAxIV_OFFSET         0x1E 
  
 
 // SPI pin definitions due to portmaping all variants use the same pins
@@ -66,7 +66,7 @@
 
 #if SPI_SER_INTF ==  SER_INTF_UCA1                     
 
-#define SPI_BASE          (&UCA1CTLW0)
+#define SPI_BASE          (__MSP430_BASEADDRESS_EUSCI_A1__)
 
   //port mapping values
   #define MMC_PM_SIMO     PM_UCA1SIMO
@@ -74,12 +74,8 @@
   #define MMC_PM_UCLK     PM_UCA1CLK
 
   //define SPI registers for UCA1
- #define SPIRXBUF        UCA1RXBUF
- #define SPITXBUF        UCA1TXBUF
  #define SPI_SEND(x)     do{int t;UCA1TXBUF=x;t=UCA1RXBUF;}while(0)
- #define SPITXREADY      (UCA1IFG&UCTXIFG)               /* Wait for TX to be ready */
  #define SPITXDONE       ((SPIRXREADY))          /* Wait for TX to finish */
- #define SPIRXREADY      (UCA1IFG&UCRXIFG)              /* Wait for TX to be ready */
  #define SPIRXFG_RST     {int t;t=UCA1RXBUF;}
 
   //define ISR name
@@ -92,15 +88,11 @@
   #define MMC_PM_SOMI     PM_UCB1SOMI
   #define MMC_PM_UCLK     PM_UCB1CLK
 
-  #define SPI_BASE          (&UCB1CTLW0)
+  #define SPI_BASE          (__MSP430_BASEADDRESS_EUSCI_B1__)
 
   //define SPI registers for UCB1
-  #define SPIRXBUF        UCB1RXBUF
-  #define SPITXBUF        UCB1TXBUF 
   #define SPI_SEND(x)     (UCB1TXBUF=x)         
-  #define SPITXREADY      (UCB1IFG&UCTXIFG)        /* Wait for TX to be ready */
   #define SPITXDONE       (!(UCB1STATW&UCBUSY))      /* Wait for TX to finish */
-  #define SPIRXREADY      (UCB1IFG&UCRXIFG)        /* Wait for TX to be ready */
   #define SPIRXFG_RST     {int t;t=UCB1RXBUF;}     
 
   //define ISR name
@@ -113,15 +105,11 @@
   #define MMC_PM_SOMI     PM_UCA2SOMI
   #define MMC_PM_UCLK     PM_UCA2CLK
 
-  #define SPI_BASE          (&UCA2CTLW0)
+  #define SPI_BASE          (__MSP430_BASEADDRESS_EUSCI_A2__)
 
-  //define SPI registers for UCA2
-  #define SPIRXBUF        UCA2RXBUF
-  #define SPITXBUF        UCA2TXBUF 
+  //define SPI registers for UCA2 
   #define SPI_SEND(x)     do{int t;UCA2TXBUF=x;t=UCA2RXBUF;}while(0)        
-  #define SPITXREADY      (UCA2IFG&UCTXIFG)        /* Wait for TX to be ready */
   #define SPITXDONE       ((SPIRXREADY))          /* Wait for TX to finish */
-  #define SPIRXREADY      (UCA2IFG&UCRXIFG)        /* Wait for TX to be ready */
   #define SPIRXFG_RST     {int t;t=UCA2RXBUF;}     
 
   //define ISR name
@@ -134,15 +122,11 @@
   #define MMC_PM_SOMI     PM_UCA3SOMI
   #define MMC_PM_UCLK     PM_UCA3CLK
   
-  #define SPI_BASE          (&UCA3CTLW0)
+  #define SPI_BASE          (__MSP430_BASEADDRESS_EUSCI_A3__)
 
   //define SPI registers for UCA3
-  #define SPIRXBUF        UCA3RXBUF
-  #define SPITXBUF        UCA3TXBUF 
   #define SPI_SEND(x)     do{int t;t=UCA3RXBUF;UCA3TXBUF=x;}while(0)
-  #define SPITXREADY      (UCA3IFG&UCTXIFG)        /* Wait for TX to be ready */
   #define SPITXDONE       ((SPIRXREADY))          /* Wait for TX to finish */
-  #define SPIRXREADY      (UCA3IFG&UCRXIFG)        /* Wait for TX to be ready */
   #define SPIRXFG_RST     {int t;t=UCA3RXBUF;}     
   
   //define ISR name
@@ -157,7 +141,14 @@
   #endif
 #endif
 
-#define SPI_BUSY     (SPI_BASE[UCAxSTATW_OFFSET]&UCBUSY) 
+#define SPI_REG_W(offset)     (*(volatile unsigned short*)(SPI_BASE+(offset)))
+#define SPI_REG_B(offset)     (*(volatile unsigned char*)(SPI_BASE+(offset)))
+
+#define SPI_BUSY        (SPI_REG_W(UCAxSTATW_OFFSET)&UCBUSY) 
+#define SPIRXBUF        (SPI_REG_W(UCAxRXBUF_OFFSET))
+#define SPITXBUF        (SPI_REG_W(UCAxTXBUF_OFFSET))
+#define SPIRXREADY      (SPI_REG_W(UCAxIFG_OFFSET)&UCRXIFG)        /* Wait for TX to be ready */
+#define SPITXREADY      (SPI_REG_W(UCAxIFG_OFFSET)&UCTXIFG)        /* Wait for TX to be ready */
 
 //definitions for chip select pin
 #define CS_LOW()    (MMC_CS_PxOUT &= ~MMC_CS)                   // Card Select
