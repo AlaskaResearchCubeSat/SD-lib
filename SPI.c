@@ -155,7 +155,7 @@ void spiDummyClk(void){
 }
 
 //Read a frame of bytes via SPI
-unsigned char spiReadFrame(unsigned char* pBuffer, unsigned int size)
+int spiReadFrame(unsigned char* pBuffer, unsigned int size)
 {
 #ifndef withDMA
   unsigned long i = 0;
@@ -204,7 +204,7 @@ unsigned char spiReadFrame(unsigned char* pBuffer, unsigned int size)
 
 
 //Send a frame of bytes via SPI
-unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size)
+int spiSendFrame(const unsigned char* pBuffer, unsigned int size)
 {
 #ifndef withDMA
   unsigned long i = 0;
