@@ -334,7 +334,12 @@ int mmcGoIdle(void){
   //check for affermitave ir response
   if((((char)resp)&(~MMC_R1_IDLE))==MMC_SUCCESS){
     //get R7 response bits
-    spiReadFrame(extresp,4);
+    if(resp=spiReadFrame(extresp,4)){
+      //For some reason (DMA9?) there was an error with readframe
+      //unlock card
+      mmcUnlock();
+      return resp;
+    }
   }
   //end transaction
   CS_HIGH();
@@ -429,7 +434,11 @@ int mmcGoIdle(void){
     //check response
     if(resp==MMC_SUCCESS){
       //get R3 response bits
-      spiReadFrame(extresp,4);
+      if(resp=spiReadFrame(extresp,4)){
+        //unlock card
+        mmcUnlock();
+        return resp;
+      }  
     }
     //Transaction done
     CS_HIGH();
