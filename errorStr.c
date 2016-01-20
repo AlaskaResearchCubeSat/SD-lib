@@ -32,8 +32,8 @@ const char * SD_error_str(int error){
     //software defined errors
     case MMC_TIMEOUT_ERROR:
       return "ERROR TIMEOUT";
-    case MMC_DMA_TIMEOUT_ERROR:
-      return "ERROR DMA TIMEOUT";
+    case MMC_DMA_TX_TIMEOUT_ERROR:
+      return "ERROR DMA TX TIMEOUT";
     case MMC_BUSY_TIMEOUT_ERROR:
       return "ERROR CARD BUSY TIMEOUT";
     case MMC_LOCK_TIMEOUT_ERROR:
@@ -56,6 +56,8 @@ const char * SD_error_str(int error){
       return "ERROR READ OCR FAILED";
     case MMC_INIT_ERR_BLOCK_SIZE:
       return "ERROR SET BLOCK SIZE FAILED";
+    case MMC_DMA_RX_TIMEOUT_ERROR:
+      return "ERROR DMA RX TIMEOUT";
     //Other errors, Probably from SD card
     default:
       //check for errors from the card

@@ -197,7 +197,7 @@ int spiReadFrame(unsigned char* pBuffer, unsigned int size)
     //check to see that event happened
     if(!(e&DMA_EV_SD_SPI)){
       //event did not happen, return error
-      return MMC_DMA_TIMEOUT_ERROR;
+      return MMC_DMA_RX_TIMEOUT_ERROR;
     }
 #endif
   return 0;
@@ -281,7 +281,7 @@ int spiSendFrame(const unsigned char* pBuffer, unsigned int size)
       //check to see that event happened
       if(!(e&DMA_EV_SD_SPI)){
         //event did not happen, return error
-        return MMC_DMA_TIMEOUT_ERROR;
+        return MMC_DMA_TX_TIMEOUT_ERROR;
       }
 #endif
   return 0;
