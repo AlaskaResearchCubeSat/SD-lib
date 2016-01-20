@@ -150,8 +150,8 @@ int spiReadFrame(unsigned char* pBuffer, unsigned int size)
       *((unsigned int*)&DMA2DA) = EUSCI_A2_BASE + 0x04;
     #elif SPI_SER_INTF ==  SER_INTF_UCA3
       //DMACTL0 |= DMA2TSEL__USCIA3RX|DMA0TSEL__USCIA3TX;   
-      DMACTL1 |= DMA2TSEL__USCIA3RX;
-      DMACTL0 |= DMA2TSEL__USCIA3RX|DMA0TSEL_26;   //bug in header, DMA2TSEL__USCIA3TX not defined     
+      DMACTL0 |= DMA1TSEL__USCIA3RX|DMA0TSEL_26;   //bug in header, DMA2TSEL__USCIA3TX not defined    
+      DMACTL1 |= DMA2TSEL__USCIA3RX; 
       //setup dummy channel: read and write from unused space in the SPI registers
       *((unsigned int*)&DMA2SA) = EUSCI_A3_BASE + 0x02;
       *((unsigned int*)&DMA2DA) = EUSCI_A3_BASE + 0x04;
