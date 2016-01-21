@@ -71,7 +71,7 @@ int mmcReInit_card(void);
 int mmcInit_card(void);
 
 // send command to MMC
-void mmcSendCmd (char cmd, unsigned long data, char crc);
+int mmcSendCmd (char cmd, unsigned long data, char crc);
 
 // set MMC in Idle mode
 int mmcGoIdle(void);
