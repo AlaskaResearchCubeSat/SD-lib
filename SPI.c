@@ -200,7 +200,7 @@ int spiReadFrame(unsigned char* pBuffer, unsigned int size)
       return MMC_DMA_RX_TIMEOUT_ERROR;
     }
 #endif
-  return 0;
+  return MMC_SUCCESS;
 }
 
 
@@ -284,6 +284,6 @@ int spiSendFrame(const unsigned char* pBuffer, unsigned int size)
         return MMC_DMA_TX_TIMEOUT_ERROR;
       }
 #endif
-  return 0;
+  return MMC_SUCCESS;
 }
 
