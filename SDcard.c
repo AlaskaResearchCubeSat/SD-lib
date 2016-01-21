@@ -178,7 +178,7 @@ void mmc_pins_on(void){
   //init flags
   mmcStat.flags=MMC_FLAG_INIT_MSP;
   //deselect card (bring line high)
-  CS_HIGH();
+  SD_SEL();
   // Chip Select
   MMC_CS_PxDIR |= MMC_CS;
   
@@ -231,7 +231,7 @@ void _mmc_pins_off(void){
     //init flags
   mmcStat.flags=0;
   //set chip select low
-  CS_LOW();
+  SD_SEL();
   // Chip Select direction
   MMC_CS_PxDIR |= MMC_CS;
   
@@ -346,14 +346,14 @@ int mmcGoIdle(void){
   }
 
   //start new transaction
-  CS_SEL();
+  SD_SEL();
   //Turn on CRC
   mmcSendCmd(MMC_CRC_ON_OFF,1,0xFF);
   //response starts with R1
   resp=mmc_R1();
   //TOOD: check response
   //end transaction
-  CS_DESEL();
+  SD_DESEL();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   
@@ -848,11 +848,11 @@ int mmcWriteBlock(SD_block_addr addr,const void *pBuffer){
       rvalue=MMC_SUCCESS;
     }else if(((char)rvalue)==MMC_DAT_CRC){
       //CRC error, read status to clear error
-      CS_HIGH ();
+      SD_DESEL ();
       // Send 8 Clock pulses of delay.
       spiDummyClk();
       // CS = LOW (on)
-      CS_LOW ();
+      SD_SEL ();
       //CRC error, read status to clear
       mmcSendCmd(MMC_SEND_STATUS,0,0xFF);
       //get response
@@ -1010,11 +1010,11 @@ int mmcWriteMultiBlock(SD_block_addr addr,const void *pBuffer,unsigned short blo
       rvalue=mmc_busy();
     }else if(((char)rvalue)==MMC_DAT_CRC){
       //CRC error, read status to clear error
-      CS_HIGH ();
+      SD_DESEL ();
       // Send 8 Clock pulses of delay.
       spiDummyClk();
       // CS = LOW (on)
-      CS_LOW ();
+      SD_SEL ();
       //CRC error, read status to clear
       mmcSendCmd(MMC_SEND_STATUS,0,0xFF);
       //get response
