@@ -132,13 +132,13 @@ void mmcUnlock(void){
 
 //lock mutex, internal version that does not check if card is initialized
 //this is used for init functions where card is usually not initialized
-static int _mmcLock(void){
+static int _mmcLock(CTL_TIMEOUT_t t,CTL_TIME_t timeout){
   //check if peripherals have been initialized
   if(!(mmcStat.flags&MMC_FLAG_INIT_MSP)){
     return MMC_MSP_UNINIT_ERROR;
   }
   //try to lock mutex
-  if(0==ctl_mutex_lock(&mmcStat.mutex,CTL_TIMEOUT_DELAY,10)){
+  if(0==ctl_mutex_lock(&mmcStat.mutex,t,timeout)){
     //return error
     return MMC_LOCK_TIMEOUT_ERROR;
   }
@@ -147,10 +147,10 @@ static int _mmcLock(void){
 }
 
 //lock mutex and check if card is initialized
-int mmcLock(void){
+int mmcLock(CTL_TIMEOUT_t t,CTL_TIME_t timeout){
   int resp;
   //lock card
-  resp=_mmcLock();
+  resp=_mmcLock(t,timeout);
   //check for error
   if(resp){
     //return error
@@ -172,16 +172,9 @@ int mmcLock(void){
 //              [MMC init functions]
 //==============================================================
 
-// Initialize ports and pins for MMC opperation
-void mmcInit_msp(void){
-  // Port x Function           Dir       On/Off
-  //         mmcCS         Out       0 - Active 1 - none Active
-  //         Dout          Out       0 - off    1 - On -> init in SPI_Init
-  //         Din           Inp       0 - off    1 - On -> init in SPI_Init
-  //         Clk           Out       -                 -> init in SPI_Init
 
-  //init mutex
-  ctl_mutex_init(&mmcStat.mutex);
+// Initialize ports and pins for MMC opperation
+void mmc_pins_on(void){
   //init flags
   mmcStat.flags=MMC_FLAG_INIT_MSP;
   //deselect card (bring line high)
@@ -193,12 +186,85 @@ void mmcInit_msp(void){
   SPISetup();
 
   //setup SPI PINS for SPI function
-  MMC_PxSEL1|=MMC_SIMO|MMC_SOMI;
-  MMC_PxSEL0|=MMC_UCLK;
+  MMC_PxSEL|=MMC_SIMO|MMC_SOMI|MMC_UCLK;
   //enable pullup on SOMI pin
-  MMC_PxOUT1|=MMC_SOMI;
-  MMC_PxREN1|=MMC_SOMI;
+  MMC_PxOUT|=MMC_SOMI;
+  MMC_PxREN|=MMC_SOMI;
 }
+
+//map module to pins
+void _mmc_pins_map(void){
+  //========[setup port mapping]=======
+  //unlock registers
+  PMAPKEYID=PMAPKEY;
+  //allow reconfiguration
+  PMAPCTL|=PMAPRECFG;
+  //setup SIMO
+  MMC_PMAP_SIMO=MMC_PM_SIMO;
+  //setup SOMI
+  MMC_PMAP_SOMI=MMC_PM_SOMI;
+  //setup SIMO
+  MMC_PMAP_UCLK=MMC_PM_UCLK;
+  //lock the Port map module
+  PMAPKEYID=0;
+}
+
+//init msp ports and pins and setup MUTEX
+//because this initializes the MUTEX it should only be called ONCE (usually in main)
+void mmcInit_msp(void){
+  // Port x Function           Dir       On/Off
+  //         mmcCS         Out       0 - Active 1 - none Active
+  //         Dout          Out       0 - off    1 - On -> init in SPI_Init
+  //         Din           Inp       0 - off    1 - On -> init in SPI_Init
+  //         Clk           Out       -                 -> init in SPI_Init
+
+
+  //init mutex
+  ctl_mutex_init(&mmcStat.mutex);
+  //map pins
+  _mmc_pins_map();
+  //setup everything else
+  mmc_pins_on();
+}
+
+void _mmc_pins_off(void){
+    //init flags
+  mmcStat.flags=0;
+  //set chip select low
+  CS_LOW();
+  // Chip Select direction
+  MMC_CS_PxDIR |= MMC_CS;
+  
+  // Init SPI Module
+  SPIShutdown();
+
+  //setup SPI PINS to drive low
+  MMC_PxOUT&=~(MMC_SIMO|MMC_SOMI|MMC_UCLK);
+  //setup SPI PINS to outputs
+  MMC_PxDIR|=MMC_SIMO|MMC_SOMI|MMC_UCLK;
+  //setup SPI PINS for GPIO function
+  MMC_PxSEL&=~(MMC_SIMO|MMC_SOMI|MMC_UCLK);
+}
+
+void mmc_pins_off(void){
+  //wait for card to not be in use
+  _mmcLock(CTL_TIMEOUT_NONE,0);
+  //turn off MMC pins
+  _mmc_pins_off();
+  //done with SD card
+  mmcUnlock();
+}
+
+void mmcInit_msp_off(void){
+  //init mutex
+  ctl_mutex_init(&mmcStat.mutex);
+  //map pins
+  _mmc_pins_map();
+  //setup pins with outputs low
+  _mmc_pins_off();
+}
+
+
 
 //Force initialization of SD card
 int mmcReInit_card(void){
@@ -210,7 +276,7 @@ int mmcReInit_card(void){
   }
   //TODO: perhaps it would be nice to check if multiple tasks are running here and bail if they are not
   //get a lock on the card
-  if(resp=_mmcLock()){
+  if(resp=_mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //set SPI to slow speed
@@ -259,17 +325,17 @@ int mmcGoIdle(void){
   int i;
 
   //get a lock on the card
-  if(resp=_mmcLock()){
+  if(resp=_mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //select card
-  CS_LOW();
+  SD_SEL();
   //Send Command 0 to put MMC in SPI mode
   mmcSendCmd(MMC_GO_IDLE_STATE,0,0x95);
   //Now wait for READY RESPONSE
   resp=mmc_R1();
   //error occurred
-  CS_HIGH();
+  SD_DESEL();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //check response
@@ -280,19 +346,19 @@ int mmcGoIdle(void){
   }
 
   //start new transaction
-  CS_LOW();
+  CS_SEL();
   //Turn on CRC
   mmcSendCmd(MMC_CRC_ON_OFF,1,0xFF);
   //response starts with R1
   resp=mmc_R1();
   //TOOD: check response
   //end transaction
-  CS_HIGH();
+  CS_DESEL();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   
   //start new transaction
-  CS_LOW();
+  SD_SEL();
   //send operating voltage and check pattern
   mmcSendCmd(MMC_SEND_IF_COND,MMC_VHS_27_36|0xAA,0x87);
   //response starts with R1
@@ -300,10 +366,15 @@ int mmcGoIdle(void){
   //check for affermitave ir response
   if((((char)resp)&(~MMC_R1_IDLE))==MMC_SUCCESS){
     //get R7 response bits
-    spiReadFrame(extresp,4);
+    if(resp=spiReadFrame(extresp,4)){
+      //For some reason (DMA9?) there was an error with readframe
+      //unlock card
+      mmcUnlock();
+      return resp;
+    }
   }
   //end transaction
-  CS_HIGH();
+  SD_DESEL();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //check for illegal command
@@ -312,7 +383,7 @@ int mmcGoIdle(void){
     //TODO: maybe send CMD58 to check voltage range
     for(i=0,resp=MMC_R1_IDLE;i<50 && resp==MMC_R1_IDLE;i++){
       //start transaction
-      CS_LOW();
+      SD_SEL();
       //next command is application spesific command
       mmcSendCmd(MMC_APP_CMD,0,0xff);
       //get response
@@ -325,7 +396,7 @@ int mmcGoIdle(void){
         resp=mmc_R1();
       }
       //Transaction done
-      CS_HIGH();
+      SD_DESEL();
       // Send 8 Clock pulses of delay.
       spiDummyClk();
       //wait 20 or so ms
@@ -359,7 +430,7 @@ int mmcGoIdle(void){
     //TODO: maybe send CMD58 to check voltage range
     for(i=0,resp=MMC_R1_IDLE;i<50 && ((char)resp)==MMC_R1_IDLE;i++){
       //start transaction
-      CS_LOW();
+      SD_SEL();
       //next command is application spesific command
       mmcSendCmd(MMC_APP_CMD,0,0xff);
       //get response
@@ -372,7 +443,7 @@ int mmcGoIdle(void){
         resp=mmc_R1();
       }
       //Transaction done
-      CS_HIGH();
+      SD_DESEL();
       // Send 8 Clock pulses of delay.
       spiDummyClk();
       //wait 20 or so ms
@@ -385,7 +456,7 @@ int mmcGoIdle(void){
       return MMC_INIT_ERR_TIMEOUT;
     }
     //start transaction
-    CS_LOW();
+    SD_SEL();
     //get response
     resp=mmc_R1();
     //read OCR to check CCS bit
@@ -395,10 +466,14 @@ int mmcGoIdle(void){
     //check response
     if(resp==MMC_SUCCESS){
       //get R3 response bits
-      spiReadFrame(extresp,4);
+      if(resp=spiReadFrame(extresp,4)){
+        //unlock card
+        mmcUnlock();
+        return resp;
+      }  
     }
     //Transaction done
-    CS_HIGH();
+    SD_DESEL();
     // Send 8 Clock pulses of delay.
     spiDummyClk();
 
@@ -583,12 +658,12 @@ int mmc_token(void){
 //==============================================================
 
 // read a block beginning at the given address.
-int mmcReadBlock(SD_blolck_addr addr, unsigned char *pBuffer){
+int mmcReadBlock(SD_block_addr addr,void *pBuffer){
   int rvalue,resp,size;
   unsigned short crc_calc,crc;
   unsigned char crc1,crc2;
   //get a lock on the card
-  if(resp=mmcLock()){
+  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //check if SDSC card
@@ -605,7 +680,7 @@ int mmcReadBlock(SD_blolck_addr addr, unsigned char *pBuffer){
     return MMC_INVALID_CARD_SIZE;
   }  
   // CS = LOW (on)
-  CS_LOW ();
+  SD_SEL ();
   // send read command MMC_READ_SINGLE_BLOCK=CMD17
   mmcSendCmd(MMC_READ_SINGLE_BLOCK,addr, 0xFF);
   //Get R1 response
@@ -634,7 +709,7 @@ int mmcReadBlock(SD_blolck_addr addr, unsigned char *pBuffer){
       }
     }
   }
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
@@ -643,13 +718,13 @@ int mmcReadBlock(SD_blolck_addr addr, unsigned char *pBuffer){
 }// mmc_read_block
 
 // read out multiple blocks at once
-int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuffer){
+int mmcReadBlocks(SD_block_addr addr,unsigned short count,void *pBuffer){
   unsigned short i;
   int rvalue,rt,resp,size;
   unsigned short crc_calc,crc;
   unsigned char crc1,crc2;
   //get a lock on the card
-  if(resp=mmcLock()){
+  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //check if SDSC card
@@ -666,7 +741,7 @@ int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuff
     return MMC_INVALID_CARD_SIZE;
   }
   // CS = LOW (on)
-  CS_LOW ();
+  SD_SEL ();
   // send read command MMC_READ_SINGLE_BLOCK=CMD17
   mmcSendCmd(MMC_READ_MULTIPLE_BLOCK,addr, 0xFF);
   //Get R1 response from card
@@ -676,7 +751,7 @@ int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuff
       // look for the data token to signify the start of the data
       if(((char)(rvalue=mmc_token()))==MMC_START_DATA_BLOCK_TOKEN){
         // clock the actual data transfer and receive the bytes
-        rvalue = spiReadFrame(pBuffer+i*512,512);
+        rvalue = spiReadFrame(((unsigned char*)pBuffer)+i*512,512);
     
         // get CRC bytes
         crc1=spiSendByte(DUMMY_CHAR);
@@ -715,7 +790,7 @@ int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuff
     }
   }
   //CS = HIGH (off)
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
@@ -729,11 +804,11 @@ int mmcReadBlocks(SD_blolck_addr addr,unsigned short count, unsigned char *pBuff
 //==============================================================
 
 //write one data block on the SD card
-int mmcWriteBlock(SD_blolck_addr addr,const unsigned char *pBuffer){
+int mmcWriteBlock(SD_block_addr addr,const void *pBuffer){
   int rvalue,result,resp,size;
   unsigned short crc;
   //get a lock on the card
-  if(resp=mmcLock()){
+  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //check if SDSC card
@@ -750,7 +825,7 @@ int mmcWriteBlock(SD_blolck_addr addr,const unsigned char *pBuffer){
     return MMC_INVALID_CARD_SIZE;
   }
   // CS = LOW (on)
-  CS_LOW ();
+  SD_SEL ();
   // send write command
   mmcSendCmd(MMC_WRITE_BLOCK,addr, 0xFF);
 
@@ -790,7 +865,7 @@ int mmcWriteBlock(SD_blolck_addr addr,const unsigned char *pBuffer){
     }
   }
 
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
@@ -822,7 +897,7 @@ char mmcWriteMultiBlock(unsigned long addr, const unsigned char *pBuffer,unsigne
     return MMC_INVALID_CARD_SIZE;
   }
   // CS = LOW (on)
-  CS_LOW ();
+  SD_SEL ();
   mmcSendCmd(MMC_APP_CMD,0,0xFF);
   resp=mmcGetResponse();
   // send write number of write blocks command
@@ -864,7 +939,7 @@ char mmcWriteMultiBlock(unsigned long addr, const unsigned char *pBuffer,unsigne
     // the MMC never acknowledge the write block count command
     rvalue = MMC_RESPONSE_ERROR;   // 2
   }
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
@@ -874,13 +949,13 @@ char mmcWriteMultiBlock(unsigned long addr, const unsigned char *pBuffer,unsigne
 
 
 //write mutiple blocks of data fist block # is given as start
-int mmcWriteMultiBlock(SD_blolck_addr addr,const unsigned char *pBuffer,unsigned short blocks){
+int mmcWriteMultiBlock(SD_block_addr addr,const void *pBuffer,unsigned short blocks){
   int rvalue,size;
   int resp;
   unsigned short crc;
   unsigned int i;
   //get a lock on the card
-  if(resp=mmcLock()){
+  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //check if SDSC card
@@ -897,7 +972,7 @@ int mmcWriteMultiBlock(SD_blolck_addr addr,const unsigned char *pBuffer,unsigned
     return MMC_INVALID_CARD_SIZE;
   }
   // CS = LOW (on)
-  CS_LOW ();
+  SD_SEL ();
   
   // send write command
   mmcSendCmd(MMC_WRITE_MULTIPLE_BLOCK,addr, 0xFF);
@@ -909,9 +984,9 @@ int mmcWriteMultiBlock(SD_blolck_addr addr,const unsigned char *pBuffer,unsigned
       spiSendByte(MMC_START_DATA_MULTIPLE_BLOCK_WRITE);
       // clock the actual data transfer and transmit the bytes
       
-      spiSendFrame(pBuffer+i*512,512);
+      spiSendFrame(((unsigned char*)pBuffer)+i*512,512);
       
-      crc=crc16(pBuffer+i*512,512);
+      crc=crc16(((unsigned char*)pBuffer)+i*512,512);
 
       // put CRC bytes 
       spiSendByte(crc>>8);        //MSB
@@ -947,7 +1022,7 @@ int mmcWriteMultiBlock(SD_blolck_addr addr,const unsigned char *pBuffer,unsigned
     }
   }
 
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
@@ -981,17 +1056,17 @@ void mmcSendCmd (char cmd, unsigned long data,char crc)
 int mmcSetBlockLength(unsigned long blocklength){
   int rt,resp;
   //get a lock on the card
-  if(resp=mmcLock()){
+  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   // CS = LOW (on)
-  CS_LOW ();
+  SD_SEL ();
   // Set the block length to read
   mmcSendCmd(MMC_SET_BLOCKLEN,blocklength,0xFF);
   //get R1 response
   rt=mmc_R1();
   // CS = HIGH (off)
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
@@ -1000,10 +1075,10 @@ int mmcSetBlockLength(unsigned long blocklength){
 } // Set block_length
 
 //erase blocks from start to end
-int mmcErase(SD_blolck_addr start,SD_blolck_addr end){
+int mmcErase(SD_block_addr start,SD_block_addr end){
   int rvalue,resp,size;
   //get a lock on the card
-  if(resp=mmcLock()){
+  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //check if SDSC card
@@ -1021,7 +1096,7 @@ int mmcErase(SD_blolck_addr start,SD_blolck_addr end){
     return MMC_INVALID_CARD_SIZE;
   }
   // CS = LOW (on)
-  CS_LOW ();
+  SD_SEL ();
   
   //send erase block start
   mmcSendCmd(MMC_ERASE_WR_BLK_START,start,0xFF);
@@ -1039,7 +1114,7 @@ int mmcErase(SD_blolck_addr start,SD_blolck_addr end){
   }
   
   //end transaction
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
@@ -1052,11 +1127,11 @@ int mmcErase(SD_blolck_addr start,SD_blolck_addr end){
 int mmcReadReg(unsigned char reg,unsigned char *buffer){
   int rvalue,resp;
   //get a lock on the card
-  if(resp=mmcLock()){
+  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
     return resp;
   }
   //select
-  CS_LOW ();
+  SD_SEL ();
   //send read CSD
   mmcSendCmd(reg,0,0xFF);
   //check response
@@ -1070,7 +1145,7 @@ int mmcReadReg(unsigned char reg,unsigned char *buffer){
     }
   }
   //deselect card
-  CS_HIGH ();
+  SD_DESEL ();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //unlock card
