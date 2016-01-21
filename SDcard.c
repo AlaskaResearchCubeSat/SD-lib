@@ -1109,9 +1109,14 @@ int mmcReadReg(unsigned char reg,unsigned char *buffer){
   return rvalue;
 }
 
-//return size in KB from CSD structure
+
+//define for number of bytes in a megabyte
+#define SD_B_IN_MB      (1024lu*1024lu)
+
+//return size in MB from CSD structure
+//MB is used because it results in smaller numbers
 unsigned long mmcGetCardSize(unsigned char *CSD){
-  unsigned long Csize;
+  unsigned long Csize,tmp;
   unsigned short mult,blocklen;
   //check CSD version
   switch(CSD[0]>>6){
@@ -1130,20 +1135,25 @@ unsigned long mmcGetCardSize(unsigned char *CSD){
       blocklen=CSD[5]&0x0F;             //CSD bits 80-83
       //calculate block length
       blocklen=1<<blocklen;
-      //compute size in KB
+      //compute size in MB
       //return ((Csize+1)*mult*blocklen)/1024;
-      //compute size in Bytes
-      return ((Csize+1)*mult*blocklen)/1024;
+      //calculate multiplication value
+      tmp=mult*blocklen;
+      //check if value is less than 
+      if(tmp<SD_B_IN_MB){
+        return ((Csize+1)*tmp)/SD_B_IN_MB;
+      }else{
+        return (Csize+1)/(SD_B_IN_MB/tmp);
+      }
     case 1:
       //version 2.0
       //get C_SIZE field
       Csize =CSD[9];                               //CSD bits 48-55
       Csize|=CSD[8]<<8;                            //CSD bits 56-63
       Csize|=((unsigned long)CSD[7]&0x3F)<<16;     //CSD bits 64-69
-      //compute size in KB
-      //return (Csize+1)512;
-      //size in bytes
-      return (Csize+1)*512*1024;
+      //size in MB
+      //return (Csize+1)*512*1024/SD_B_IN_MB;
+      return (Csize+1)/2;
     default:
       //error unknown version
       return 0;
