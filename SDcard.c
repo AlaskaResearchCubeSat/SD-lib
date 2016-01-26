@@ -664,7 +664,7 @@ int mmc_token(void){
     //wait a bit before checking again
     ctl_timeout_wait(ctl_get_current_time()+2);
   }
-  return MMC_TIMEOUT_ERROR;
+  return MMC_TOKEN_TIMEOUT_ERROR;
 }
 
 //==============================================================
