@@ -344,10 +344,30 @@ int mmcGoIdle(void){
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //check response
-  if(((char)resp)!=MMC_R1_IDLE){
+  if(resp==MMC_SUCCESS){
     //unlock card
     mmcUnlock();
+    //idle command failed to put card in idle state, return error
     return MMC_INIT_ERR_GO_IDLE;
+  }else if(resp==MMC_TIMEOUT_ERROR){
+    //unlock card
+    mmcUnlock();
+    //idle command timeout. card likely not in place
+    return MMC_IDLE_TIMEOUT_ERROR;
+  }else if((resp&MMC_RC_MASK)==MMC_R1_RESPONSE){
+    //check if idle response was given
+    if((resp&MMC_CARD_MASK)!=MMC_R1_IDLE){
+      //unlock card
+      mmcUnlock();
+      //return a go idle response instead of a R1 response
+      return (resp&MMC_CARD_MASK)|MMC_IDLE_RESP;
+    }
+    //yes then fall through and continue
+  }else{
+    //unlock card
+    mmcUnlock();
+    //unexpected response, return internal error
+    return MMC_INTERNAL_ERROR;
   }
 
   //start new transaction
