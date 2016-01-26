@@ -58,6 +58,8 @@ const char * SD_error_str(int error){
       return "ERROR SET BLOCK SIZE FAILED";
     case MMC_DMA_RX_TIMEOUT_ERROR:
       return "ERROR DMA RX TIMEOUT";
+    case MMC_TOKEN_TIMEOUT_ERROR:
+      return "ERROR TOKEN TIMEOUT";
     //Other errors, Probably from SD card
     default:
       //check for errors from the card
