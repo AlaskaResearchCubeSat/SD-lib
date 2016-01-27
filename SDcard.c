@@ -735,7 +735,7 @@ int mmcReadBlock(SD_block_addr addr,void *pBuffer){
     rvalue=mmc_R1(100);
     if(rvalue==MMC_SUCCESS){
       //look for the data token to signify the start of the data
-      if(((char)(rvalue=mmc_token(100)))==MMC_START_DATA_BLOCK_TOKEN){
+      if((rvalue=mmc_token(100))==(MMC_DATA_TOKEN_RESP|MMC_START_DATA_BLOCK_TOKEN)){
         // clock the actual data transfer and receive the bytes; spi_read automatically finds the Data Block
         rvalue = spiReadFrame(pBuffer,512);
         // get CRC bytes (not really needed by us, but required by MMC)
@@ -784,7 +784,7 @@ int mmcReadBlocks(SD_block_addr addr,unsigned short count,void *pBuffer){
       //get data blocks
       for(i=0;i<count;i++){
         // look for the data token to signify the start of the data
-        if(((char)(rvalue=mmc_token(100)))==MMC_START_DATA_BLOCK_TOKEN){
+        if((rvalue=mmc_token(100))==(MMC_DATA_TOKEN_RESP|MMC_START_DATA_BLOCK_TOKEN)){
           // clock the actual data transfer and receive the bytes
           resp = spiReadFrame(((unsigned char*)pBuffer)+i*512,512);
           // get CRC bytes (not really needed by us, but required by MMC)
@@ -1086,7 +1086,7 @@ int mmcReadReg(unsigned char reg,unsigned char *buffer){
   if(rvalue==MMC_SUCCESS){
     //check response
     if((rvalue=mmc_R1(100))==MMC_SUCCESS){
-      if(((char)(rvalue=mmc_token(100)))==MMC_START_DATA_BLOCK_TOKEN){
+      if((rvalue=mmc_token(100))==(MMC_DATA_TOKEN_RESP|MMC_START_DATA_BLOCK_TOKEN)){
         //get CSD data
         rvalue=spiReadFrame(buffer,16);
         // put CRC bytes (not really needed by us, but required by MMC)
