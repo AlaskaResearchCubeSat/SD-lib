@@ -692,11 +692,7 @@ int mmc_token(int num){
     //get byte
     resp=spiSendByte(DUMMY_CHAR);
     //check for data start token
-    if(resp==MMC_START_DATA_BLOCK_TOKEN){
-      return resp|MMC_DATA_TOKEN_RESP;
-    }
-    //check for Data Error Token
-    if((resp&0xF0)==0x00){
+    if(resp!=0xFF){
       return resp|MMC_DATA_TOKEN_RESP;
     }
     //wait a bit before checking again
