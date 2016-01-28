@@ -86,7 +86,7 @@
 
 MMC_STAT_t mmcStat={0,0};
 
-int mmc_R1(void);
+int mmc_R1(int num);
 
 //==============================================================
 //              [MMC locking functions]
@@ -290,14 +290,6 @@ int mmcReInit_card(void){
   if(resp==MMC_SUCCESS){
     //set SPI to fast speed
     SPI_fast();
-    //set block length of card
-    //TODO: this may not be needed, Think deep thoughts
-    if(mmcSetBlockLength(512) != MMC_SUCCESS){
-      //unlock card
-      mmcUnlock();
-      //return Error
-      return MMC_INIT_ERR_BLOCK_SIZE;
-    }
   }
   //unlock card
   mmcUnlock();
@@ -331,43 +323,96 @@ int mmcGoIdle(void){
   //select card
   SD_SEL();
   //Send Command 0 to put MMC in SPI mode
-  mmcSendCmd(MMC_GO_IDLE_STATE,0,0x95);
+  resp=mmcSendCmd(MMC_GO_IDLE_STATE,0,0x95);
+  //check for error (probably DMA timeout)
+  if(resp!=MMC_SUCCESS){
+    //unlock card
+    mmcUnlock();
+    //return error
+    return resp;
+  }
   //Now wait for READY RESPONSE
-  resp=mmc_R1();
+  resp=mmc_R1(100);
   //error occurred
   SD_DESEL();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
   //check response
-  if(((char)resp)!=MMC_R1_IDLE){
+  if(resp==MMC_SUCCESS){
     //unlock card
     mmcUnlock();
+    //idle command failed to put card in idle state, return error
     return MMC_INIT_ERR_GO_IDLE;
+  }else if(resp==MMC_TIMEOUT_ERROR){
+    //unlock card
+    mmcUnlock();
+    //idle command timeout. card likely not in place
+    return MMC_IDLE_TIMEOUT_ERROR;
+  }else if((resp&MMC_RC_MASK)==MMC_R1_RESPONSE){
+    //check if idle response was given
+    if((resp&MMC_CARD_MASK)!=MMC_R1_IDLE){
+      //unlock card
+      mmcUnlock();
+      //return a go idle response instead of a R1 response
+      return (resp&MMC_CARD_MASK)|MMC_IDLE_RESP;
+    }
+    //yes then fall through and continue
+  }else{
+    //unlock card
+    mmcUnlock();
+    //unexpected response, return internal error
+    return MMC_INTERNAL_ERROR;
   }
 
   //start new transaction
   SD_SEL();
   //Turn on CRC
-  mmcSendCmd(MMC_CRC_ON_OFF,1,0xFF);
+  resp=mmcSendCmd(MMC_CRC_ON_OFF,1,0xFF);
+  //check for error (probably DMA timeout)
+  if(resp!=MMC_SUCCESS){
+    //deselect card
+    SD_DESEL();
+    //unlock card
+    mmcUnlock();
+    //return error
+    return resp;
+  }
   //response starts with R1
-  resp=mmc_R1();
-  //TOOD: check response
+  resp=mmc_R1(100);
   //end transaction
   SD_DESEL();
   // Send 8 Clock pulses of delay.
   spiDummyClk();
+  //check response
+  if(resp!=(MMC_R1_RESPONSE|MMC_R1_IDLE)){
+    //unlock card
+    mmcUnlock();
+    //return error
+    return resp;
+  }
   
   //start new transaction
   SD_SEL();
   //send operating voltage and check pattern
-  mmcSendCmd(MMC_SEND_IF_COND,MMC_VHS_27_36|0xAA,0x87);
+  resp=mmcSendCmd(MMC_SEND_IF_COND,MMC_VHS_27_36|0xAA,0x87);
+  //check for error (probably DMA timeout)
+  if(resp!=MMC_SUCCESS){
+    //deselect card
+    SD_DESEL();
+    //unlock card
+    mmcUnlock();
+    //return error
+    return resp;
+  }
   //response starts with R1
-  resp=mmc_R1();
+  resp=mmc_R1(100);
   //check for affermitave ir response
   if((((char)resp)&(~MMC_R1_IDLE))==MMC_SUCCESS){
     //get R7 response bits
     if(resp=spiReadFrame(extresp,4)){
       //For some reason (DMA9?) there was an error with readframe
+      //deselect card
+      SD_DESEL();
       //unlock card
       mmcUnlock();
       return resp;
@@ -385,15 +430,33 @@ int mmcGoIdle(void){
       //start transaction
       SD_SEL();
       //next command is application spesific command
-      mmcSendCmd(MMC_APP_CMD,0,0xff);
+      resp=mmcSendCmd(MMC_APP_CMD,0,0xff);
+      //check for error (probably DMA timeout)
+      if(resp!=MMC_SUCCESS){
+        //deselect card
+        SD_DESEL();
+        //unlock card
+        mmcUnlock();
+        //return error
+        return resp;
+      }
       //get response
-      resp=mmc_R1();
+      resp=mmc_R1(100);
       //check for error
       if((resp&(~MMC_R1_IDLE))==MMC_SUCCESS){
         //send host capacity information
-        mmcSendCmd(MMC_SD_SEND_OP_COND,MMC_HCS,0xFF);
+        resp=mmcSendCmd(MMC_SD_SEND_OP_COND,MMC_HCS,0xFF);
+        //check for error (probably DMA timeout)
+        if(resp!=MMC_SUCCESS){
+          //deselect card
+          SD_DESEL();
+          //unlock card
+          mmcUnlock();
+          //return error
+          return resp;
+        }
         //get response
-        resp=mmc_R1();
+        resp=mmc_R1(100);
       }
       //Transaction done
       SD_DESEL();
@@ -432,15 +495,33 @@ int mmcGoIdle(void){
       //start transaction
       SD_SEL();
       //next command is application spesific command
-      mmcSendCmd(MMC_APP_CMD,0,0xff);
+      resp=mmcSendCmd(MMC_APP_CMD,0,0xff);
+      //check for error (probably DMA timeout)
+      if(resp!=MMC_SUCCESS){
+        //deselect card
+        SD_DESEL();
+        //unlock card
+        mmcUnlock();
+        //return error
+        return resp;
+      }
       //get response
-      resp=mmc_R1();
+      resp=mmc_R1(100);
       //check for error
       if((((char)resp)&(~MMC_R1_IDLE))==MMC_SUCCESS){
         //send host capacity information
-        mmcSendCmd(MMC_SD_SEND_OP_COND,MMC_HCS,0xFF);
+        resp=mmcSendCmd(MMC_SD_SEND_OP_COND,MMC_HCS,0xFF);        
+        //check for error (probably DMA timeout)
+        if(resp!=MMC_SUCCESS){
+          //deselect card
+          SD_DESEL();
+          //unlock card
+          mmcUnlock();
+          //return error
+          return resp;
+        }
         //get response
-        resp=mmc_R1();
+        resp=mmc_R1(100);
       }
       //Transaction done
       SD_DESEL();
@@ -458,15 +539,26 @@ int mmcGoIdle(void){
     //start transaction
     SD_SEL();
     //get response
-    resp=mmc_R1();
+    resp=mmc_R1(100);
     //read OCR to check CCS bit
-    mmcSendCmd(MMC_READ_OCR,0,0xFF);
+    resp=mmcSendCmd(MMC_READ_OCR,0,0xFF);
+    //check for error (probably DMA timeout)
+    if(resp!=MMC_SUCCESS){
+      //deselect card
+      SD_DESEL();
+      //unlock card
+      mmcUnlock();
+      //return error
+      return resp;
+    }
     //get response
-    resp=mmc_R1();
+    resp=mmc_R1(100);
     //check response
     if(resp==MMC_SUCCESS){
       //get R3 response bits
       if(resp=spiReadFrame(extresp,4)){
+        //deselect card
+        SD_DESEL();
         //unlock card
         mmcUnlock();
         return resp;
@@ -477,7 +569,7 @@ int mmcGoIdle(void){
     // Send 8 Clock pulses of delay.
     spiDummyClk();
 
-    //check if command was successfull
+    //check if command was successful
     if(resp!=MMC_SUCCESS){
       //unlock card
       mmcUnlock();
@@ -508,10 +600,10 @@ int mmcGoIdle(void){
 //==============================================================
 
 //get R1 response from SD card
-int mmc_R1(void){
+int mmc_R1(int num){
   int i;
   unsigned char resp;
-  for(i=0;i<100;i++){
+  for(i=0;i<num;i++){
     resp=spiSendByte(DUMMY_CHAR);
     //check for R1 response start bit
     if(!(resp&0x80)){
@@ -545,13 +637,13 @@ int mmc_R2(void){
 }
 
 //wait for busy signal to go away
-int mmc_busy(void){
+int mmc_busy(int num){
   unsigned char resp;
   int i;
   //not really sure on this one but it seems to need a dummy read
   resp=spiSendByte(DUMMY_CHAR);
   //wait for busy signal to go away
-  for(i=0;i<400;i++){
+  for(i=0;i<num;i++){
     //get byte
     resp=spiSendByte(DUMMY_CHAR);
     //check if busy
@@ -566,15 +658,15 @@ int mmc_busy(void){
 }
 
 //get R1 response followed by a busy signal
-int mmc_R1b(void){
+int mmc_R1b(int r1_num,int busy_num){
   int i;
   unsigned char resp,rt;
   //get response
-  rt=mmc_R1();
+  rt=mmc_R1(r1_num);
   //check if there was an error
-  if(resp==MMC_SUCCESS){
+  if(rt==MMC_SUCCESS){
     //wait for busy signal to go away
-    for(i=0;i<4000;i++){
+    for(i=0;i<busy_num;i++){
       //get byte
       resp=spiSendByte(DUMMY_CHAR);
       //check if busy
@@ -633,24 +725,20 @@ int mmc_dat_resp(void){
 }
 
 //wait for token response
-int mmc_token(void){
+int mmc_token(int num){
   int i;
   unsigned char resp;
-  for(i=0;i<=100;i++){
+  for(i=0;i<num;i++){
     //get byte
     resp=spiSendByte(DUMMY_CHAR);
     //check for data start token
-    if(resp==MMC_START_DATA_BLOCK_TOKEN){
-      return resp|MMC_DATA_TOKEN_RESP;
-    }
-    //check for Data Error Token
-    if((resp&0xF0)==0x00){
+    if(resp!=0xFF){
       return resp|MMC_DATA_TOKEN_RESP;
     }
     //wait a bit before checking again
     ctl_timeout_wait(ctl_get_current_time()+2);
   }
-  return MMC_TIMEOUT_ERROR;
+  return MMC_TOKEN_TIMEOUT_ERROR;
 }
 
 //==============================================================
@@ -682,30 +770,33 @@ int mmcReadBlock(SD_block_addr addr,void *pBuffer){
   // CS = LOW (on)
   SD_SEL ();
   // send read command MMC_READ_SINGLE_BLOCK=CMD17
-  mmcSendCmd(MMC_READ_SINGLE_BLOCK,addr, 0xFF);
-  //Get R1 response
-  rvalue=mmc_R1();
+  rvalue=mmcSendCmd(MMC_READ_SINGLE_BLOCK,addr, 0xFF);
+  //check for error (probably DMA timeout)
   if(rvalue==MMC_SUCCESS){
-    //look for the data token to signify the start of the data
-    if(((char)(rvalue=mmc_token()))==MMC_START_DATA_BLOCK_TOKEN){
-      // clock the actual data transfer and receive the bytes; spi_read automatically finds the Data Block
-      rvalue = spiReadFrame(pBuffer,512);
+    //Get R1 response
+    rvalue=mmc_R1(100);
+    if(rvalue==MMC_SUCCESS){
+      //look for the data token to signify the start of the data
+      if((rvalue=mmc_token(100))==(MMC_DATA_TOKEN_RESP|MMC_START_DATA_BLOCK_TOKEN)){
+        // clock the actual data transfer and receive the bytes; spi_read automatically finds the Data Block
+        rvalue = spiReadFrame(pBuffer,512);
           
-      // get CRC bytes
-      crc1=spiSendByte(DUMMY_CHAR);
-      crc2=spiSendByte(DUMMY_CHAR);
-      
-      //only check CRC if transmission was successful
-      if(!rvalue){
-          //assemble CRC from SD card
-          crc=(((unsigned short)crc1)<<8)|((unsigned short)crc2);
-          //calculate CRC for buffer
-          crc_calc=crc16(pBuffer,512);
-          //check CRC's
-          if(crc!=crc_calc){
-              //CRC mismatch, return error
-              rvalue=MMC_CRC_FAIL_ERROR;
-          }
+        // get CRC bytes
+        crc1=spiSendByte(DUMMY_CHAR);
+        crc2=spiSendByte(DUMMY_CHAR);
+        
+        //only check CRC if transmission was successful
+        if(!rvalue){
+            //assemble CRC from SD card
+            crc=(((unsigned short)crc1)<<8)|((unsigned short)crc2);
+            //calculate CRC for buffer
+            crc_calc=crc16(pBuffer,512);
+            //check CRC's
+            if(crc!=crc_calc){
+                //CRC mismatch, return error
+                rvalue=MMC_CRC_FAIL_ERROR;
+            }
+        }
       }
     }
   }
@@ -743,50 +834,65 @@ int mmcReadBlocks(SD_block_addr addr,unsigned short count,void *pBuffer){
   // CS = LOW (on)
   SD_SEL ();
   // send read command MMC_READ_SINGLE_BLOCK=CMD17
-  mmcSendCmd(MMC_READ_MULTIPLE_BLOCK,addr, 0xFF);
-  //Get R1 response from card
-  if ((rvalue=mmc_R1())==MMC_SUCCESS){
-    //get data blocks
-    for(i=0;i<count;i++){
-      // look for the data token to signify the start of the data
-      if(((char)(rvalue=mmc_token()))==MMC_START_DATA_BLOCK_TOKEN){
-        // clock the actual data transfer and receive the bytes
-        rvalue = spiReadFrame(((unsigned char*)pBuffer)+i*512,512);
+  rvalue=mmcSendCmd(MMC_READ_MULTIPLE_BLOCK,addr, 0xFF);
+  //check response (probably DMA timeout)
+  if(rvalue==MMC_SUCCESS){
+    //Get R1 response from card
+    if ((rvalue=mmc_R1(100))==MMC_SUCCESS){
+      //get data blocks
+      for(i=0;i<count;i++){
+        // look for the data token to signify the start of the data
+        if((rvalue=mmc_token(100))==(MMC_DATA_TOKEN_RESP|MMC_START_DATA_BLOCK_TOKEN)){
+          // clock the actual data transfer and receive the bytes
+          resp = spiReadFrame(((unsigned char*)pBuffer)+i*512,512);
     
-        // get CRC bytes
-        crc1=spiSendByte(DUMMY_CHAR);
-        crc2=spiSendByte(DUMMY_CHAR);
-        //only check CRC if transmission was successful
-        if(!rvalue){
-            //assemble CRC from SD card
-            crc=(((unsigned short)crc1)<<8)|((unsigned short)crc2);
-            //calculate CRC for buffer
-            crc_calc=crc16(pBuffer,512);
-            //check CRC's
-            if(crc!=crc_calc){
-                //CRC mismatch, return error
-                rvalue=MMC_CRC_FAIL_ERROR;
-                //stop transmission
-                break;
-            }
+          // get CRC bytes
+          crc1=spiSendByte(DUMMY_CHAR);
+          crc2=spiSendByte(DUMMY_CHAR);
+          //only check CRC if transmission was successful
+          if(!rvalue){
+              //assemble CRC from SD card
+              crc=(((unsigned short)crc1)<<8)|((unsigned short)crc2);
+              //calculate CRC for buffer
+              crc_calc=crc16(pBuffer,512);
+              //check CRC's
+              if(crc!=crc_calc){
+                  //CRC mismatch, return error
+                  rvalue=MMC_CRC_FAIL_ERROR;
+                  //stop transmission
+                  break;
+              }
+          }else{
+              //there was an error
+              break;
+          }
         }else{
-            //there was an error
-            break;
+          // the data token was never received
+          //abort
+          break;
+        }
+      }
+      //send stop transmission command
+      rt=mmcSendCmd(MMC_STOP_TRANSMISSION,0,0xFF);
+      //check for error (probably DMA error)
+      if(rt==MMC_SUCCESS){
+        //check return value
+        //get R1 response with busy signal
+        rt=mmc_R1b(100,4000); 
+        //check if an error occurred before
+        if(((char)rvalue)==MMC_START_DATA_BLOCK_TOKEN){
+          //return response to MMC_STOP_TRANSMISSION
+          rvalue=rt;
+        }
+        //check if there was an error writing blocks
+        if(resp != MMC_SUCCESS){
+          //return previous error
+          rvalue=resp;
         }
       }else{
-        // the data token was never received
-        //abort
-        break;
+        //return the first error received
+        rvalue=(resp==MMC_SUCCESS)?rt:resp;
       }
-    }
-    //send stop transmission command
-    mmcSendCmd(MMC_STOP_TRANSMISSION,0,0xFF);
-    //get R1 response with busy signal
-    rt=mmc_R1b(); 
-    //check if an error occurred before
-    if(((char)rvalue)==MMC_START_DATA_BLOCK_TOKEN){
-      //return response to MMC_STOP_TRANSMISSION
-      rvalue=rt;
     }
   }
   //CS = HIGH (off)
@@ -827,41 +933,43 @@ int mmcWriteBlock(SD_block_addr addr,const void *pBuffer){
   // CS = LOW (on)
   SD_SEL ();
   // send write command
-  mmcSendCmd(MMC_WRITE_BLOCK,addr, 0xFF);
-
-  //check R1 response for no errors
-  if((rvalue=mmc_R1())==MMC_SUCCESS){
-    // send the data token to signify the start of the data
-    spiSendByte(MMC_START_DATA_BLOCK_WRITE);
-    // clock the actual data transfer and transmit the bytes
-    result=spiSendFrame(pBuffer,512);
+  rvalue=mmcSendCmd(MMC_WRITE_BLOCK,addr, 0xFF);
+  //check for error (probably DMA timeout)
+  if(rvalue == MMC_SUCCESS){
+    //check R1 response for no errors
+    if((rvalue=mmc_R1(100))==MMC_SUCCESS){
+      // send the data token to signify the start of the data
+      spiSendByte(MMC_START_DATA_BLOCK_WRITE);
+      // clock the actual data transfer and transmit the bytes
+      result=spiSendFrame(pBuffer,512);
     
-    crc=crc16(pBuffer,512);
+      crc=crc16(pBuffer,512);
 
-    // put CRC bytes 
-    spiSendByte(crc>>8);        //MSB
-    spiSendByte(crc);           //LSB
-    //get data response
-    rvalue=mmc_dat_resp(); 
-    //check if data was accepted CRC not used so ignore CRC error
-    if(((char)rvalue)==MMC_DAT_ACCEPTED){
-      rvalue=MMC_SUCCESS;
-    }else if(((char)rvalue)==MMC_DAT_CRC){
-      //CRC error, read status to clear error
-      SD_DESEL ();
-      // Send 8 Clock pulses of delay.
-      spiDummyClk();
-      // CS = LOW (on)
-      SD_SEL ();
-      //CRC error, read status to clear
-      mmcSendCmd(MMC_SEND_STATUS,0,0xFF);
-      //get response
-      mmc_R2();
-    }
-    //check if spiSendFrame was succussfull
-    if(result){
-      //return error from spiSendFrame
-      rvalue=result;
+      // put CRC bytes 
+      spiSendByte(crc>>8);        //MSB
+      spiSendByte(crc);           //LSB
+      //get data response
+      rvalue=mmc_dat_resp(); 
+      //check if data was accepted
+      if(((char)rvalue)==MMC_DAT_ACCEPTED){
+        rvalue=MMC_SUCCESS;
+      }else if(((char)rvalue)==MMC_DAT_CRC){
+        //CRC error, read status to clear error
+        SD_DESEL ();
+        // Send 8 Clock pulses of delay.
+        spiDummyClk();
+        // CS = LOW (on)
+        SD_SEL ();
+        //CRC error, read status to clear
+        mmcSendCmd(MMC_SEND_STATUS,0,0xFF);
+        //get response
+        mmc_R2();
+      }
+      //check if spiSendFrame was succussfull
+      if(result){
+        //return error from spiSendFrame
+        rvalue=result;
+      }
     }
   }
 
@@ -872,81 +980,6 @@ int mmcWriteBlock(SD_block_addr addr,const void *pBuffer){
   mmcUnlock();
   return rvalue;
 } // mmc_write_block
-
-/* This version uses MMC_SET_WR_BLK_ERASE_COUNT which seems to have no effect on write time 
-//write mutiple blocks of data fist block # is given as start
-char mmcWriteMultiBlock(unsigned long addr, const unsigned char *pBuffer,unsigned short blocks){
-  char rvalue = MMC_SUCCESS;
-  unsigned char resp;
-  unsigned short i;
-  //get a lock on the card
-  if(resp=mmcLock()){
-    return resp;
-  }
-  //check if SDSC card
-  size=mmc_check_size(mmcStat);
-  //check if SDSC card
-  if(size==MMC_FLAG_SDSC){
-    //address is block address, not byte address
-    addr*=512;
-  //SDHC card falls through
-  }else if(size!=MMC_FLAG_SDHC){
-    //unknown card size
-    //unlock card
-    mmcUnlock();
-    return MMC_INVALID_CARD_SIZE;
-  }
-  // CS = LOW (on)
-  SD_SEL ();
-  mmcSendCmd(MMC_APP_CMD,0,0xFF);
-  resp=mmcGetResponse();
-  // send write number of write blocks command
-  mmcSendCmd(MMC_SET_WR_BLK_ERASE_COUNT,blocks, 0xFF);
-
-  if(mmc_R1()==MMC_SUCCESS){
-    // send write command
-    mmcSendCmd(MMC_WRITE_MULTIPLE_BLOCK,addr, 0xFF);
-      //check for errors
-    if (mmc_R1() == MMC_SUCCESS){ 
-      //loop over blocks to write
-      for(i=0;i<blocks;i++){
-        // send the data token to signify the start of the data
-        spiSendByte(MMC_START_DATA_MULTIPLE_BLOCK_WRITE);
-        // clock the actual data transfer and transmit the bytes
-        
-        spiSendFrame(pBuffer+i*512,512);
-        
-        crc=crc16(pBuffer,512);
-
-        // put CRC bytes 
-        spiSendByte(crc>>8);        //MSB
-        spiSendByte(crc);           //LSB
-        //get data response
-        rvalue=mmc_dat_resp(); 
-        //TODO : handle errors accordingly
-      
-      }
-      //send stop tran token
-      spiSendByte(MMC_STOP_DATA_MULTIPLE_BLOCK_WRITE);
-      //wait for completion
-      rvalue=(mmcGetXXResponse(MMC_R1_RESPONSE)==MMC_R1_RESPONSE)?MMC_SUCCESS:MMC_RESPONSE_ERROR;
-    }else{
-      // the MMC never acknowledge the write block count command
-      rvalue = MMC_RESPONSE_ERROR;   // 2
-    }
-
-  }else{
-    // the MMC never acknowledge the write block count command
-    rvalue = MMC_RESPONSE_ERROR;   // 2
-  }
-  SD_DESEL ();
-  // Send 8 Clock pulses of delay.
-  spiDummyClk();
-  //unlock card
-  mmcUnlock();
-  return rvalue;
-} // mmc_write_block*/
-
 
 //write mutiple blocks of data fist block # is given as start
 int mmcWriteMultiBlock(SD_block_addr addr,const void *pBuffer,unsigned short blocks){
@@ -975,40 +1008,42 @@ int mmcWriteMultiBlock(SD_block_addr addr,const void *pBuffer,unsigned short blo
   SD_SEL ();
   
   // send write command
-  mmcSendCmd(MMC_WRITE_MULTIPLE_BLOCK,addr, 0xFF);
-    //check for errors
-  if((rvalue=mmc_R1())==MMC_SUCCESS){ 
-    //loop over blocks to write
-    for(i=0;i<blocks;i++){
-      // send the data token to signify the start of the data
-      spiSendByte(MMC_START_DATA_MULTIPLE_BLOCK_WRITE);
-      // clock the actual data transfer and transmit the bytes
+  rvalue=mmcSendCmd(MMC_WRITE_MULTIPLE_BLOCK,addr, 0xFF);
+  //check for errors
+  if(rvalue==MMC_SUCCESS){ 
+      //check for errors
+    if((rvalue=mmc_R1(100))==MMC_SUCCESS){ 
+      //loop over blocks to write
+      for(i=0;i<blocks;i++){
+        // send the data token to signify the start of the data
+        spiSendByte(MMC_START_DATA_MULTIPLE_BLOCK_WRITE);
+        // clock the actual data transfer and transmit the bytes
       
-      spiSendFrame(((unsigned char*)pBuffer)+i*512,512);
+        spiSendFrame(((unsigned char*)pBuffer)+i*512,512);
       
-      crc=crc16(((unsigned char*)pBuffer)+i*512,512);
+        crc=crc16(((unsigned char*)pBuffer)+i*512,512);
 
-      // put CRC bytes 
-      spiSendByte(crc>>8);        //MSB
-      spiSendByte(crc);           //LSB
-      //get data response
-      rvalue=mmc_dat_resp(); 
-      //an error occurred, abort transmission
-      if(((char)rvalue)!=MMC_DAT_ACCEPTED){
-        //send stop transmission command
-        mmcSendCmd(MMC_STOP_TRANSMISSION,0,0xFF);
-        //get R1 response with busy signal
-        //keep the response that generated the error
-        mmc_R1b(); 
-        break;
+        // put CRC bytes 
+        spiSendByte(crc>>8);        //MSB
+        spiSendByte(crc);           //LSB
+        //get data response
+        rvalue=mmc_dat_resp(); 
+        //an error occurred, abort transmission
+        if(((char)rvalue)!=MMC_DAT_ACCEPTED){
+          //send stop transmission command
+          mmcSendCmd(MMC_STOP_TRANSMISSION,0,0xFF);
+          //get R1 response with busy signal
+          //keep the response that generated the error
+          mmc_R1b(100,400); 
+          break;
+        }
       }
-    }
-    if(((char)rvalue)==MMC_DAT_ACCEPTED){
-      //send stop transfer token
-      spiSendByte(MMC_STOP_DATA_MULTIPLE_BLOCK_WRITE);
-      //wait for completion
-      rvalue=mmc_busy();
-    }else if(((char)rvalue)==MMC_DAT_CRC){
+      if(((char)rvalue)==MMC_DAT_ACCEPTED){
+        //send stop transfer token
+        spiSendByte(MMC_STOP_DATA_MULTIPLE_BLOCK_WRITE);
+        //wait for completion
+        rvalue=mmc_busy(400);
+      }else if(((char)rvalue)==MMC_DAT_CRC){
       //CRC error, read status to clear error
       SD_DESEL ();
       // Send 8 Clock pulses of delay.
@@ -1020,6 +1055,7 @@ int mmcWriteMultiBlock(SD_block_addr addr,const void *pBuffer,unsigned short blo
       //get response
       mmc_R2();
     }
+    }
   }
 
   SD_DESEL ();
@@ -1027,7 +1063,8 @@ int mmcWriteMultiBlock(SD_block_addr addr,const void *pBuffer,unsigned short blo
   spiDummyClk();
   //unlock card
   mmcUnlock();
-  return rvalue;
+  //return resp if an error occurred sending data
+  return resp==MMC_SUCCESS?rvalue:resp;
 } // mmc_write_block
 
 //==============================================================
@@ -1035,7 +1072,7 @@ int mmcWriteMultiBlock(SD_block_addr addr,const void *pBuffer,unsigned short blo
 //==============================================================
 
 // send command to MMC
-void mmcSendCmd (char cmd, unsigned long data,char crc)
+int mmcSendCmd (char cmd, unsigned long data,char crc)
 {
   unsigned char frame[6];
   char temp;
@@ -1046,33 +1083,8 @@ void mmcSendCmd (char cmd, unsigned long data,char crc)
   frame[3]=(data>>(8));
   frame[4]=(data);
   frame[5]=crc7(frame,5);
-  spiSendFrame(frame,6);
+  return spiSendFrame(frame,6);
 }
-
-
-//--------------- set blocklength 2^n ------------------------------------------------------
-//TODO: determine if this is usefull and delete
-//block size should be kept at the default of 512 for compatibility reasons
-int mmcSetBlockLength(unsigned long blocklength){
-  int rt,resp;
-  //get a lock on the card
-  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
-    return resp;
-  }
-  // CS = LOW (on)
-  SD_SEL ();
-  // Set the block length to read
-  mmcSendCmd(MMC_SET_BLOCKLEN,blocklength,0xFF);
-  //get R1 response
-  rt=mmc_R1();
-  // CS = HIGH (off)
-  SD_DESEL ();
-  // Send 8 Clock pulses of delay.
-  spiDummyClk();
-  //unlock card
-  mmcUnlock();
-  return rt;
-} // Set block_length
 
 //erase blocks from start to end
 int mmcErase(SD_block_addr start,SD_block_addr end){
@@ -1099,20 +1111,28 @@ int mmcErase(SD_block_addr start,SD_block_addr end){
   SD_SEL ();
   
   //send erase block start
-  mmcSendCmd(MMC_ERASE_WR_BLK_START,start,0xFF);
-  //check for correct response
-  if((rvalue=mmc_R1())==MMC_SUCCESS){
-    //send erase block end
-    mmcSendCmd(MMC_ERASE_WR_BLK_END,end,0xFF);
+  rvalue=mmcSendCmd(MMC_ERASE_WR_BLK_START,start,0xFF);
+  //check for error (probably DMA timeout)
+  if(rvalue==MMC_SUCCESS){
     //check for correct response
-    if((rvalue=mmc_R1())==MMC_SUCCESS){
-      //send erase command
-      mmcSendCmd(MMC_EREASE,0,0xFF);
-      //get R1b response
-      rvalue=mmc_R1b();
+    if((rvalue=mmc_R1(100))==MMC_SUCCESS){
+      //send erase block end
+      rvalue=mmcSendCmd(MMC_ERASE_WR_BLK_END,end,0xFF);
+      //check for error (probably DMA timeout)
+      if(rvalue==MMC_SUCCESS){
+        //check for correct response
+        if((rvalue=mmc_R1(100))==MMC_SUCCESS){
+          //send erase command
+          rvalue=mmcSendCmd(MMC_EREASE,0,0xFF);          
+          //check for error (probably DMA timeout)
+          if(rvalue==MMC_SUCCESS){
+            //get R1b response
+            rvalue=mmc_R1b(100,4000);
+          }
+        }
+      }
     }
   }
-  
   //end transaction
   SD_DESEL ();
   // Send 8 Clock pulses of delay.
@@ -1133,15 +1153,18 @@ int mmcReadReg(unsigned char reg,unsigned char *buffer){
   //select
   SD_SEL ();
   //send read CSD
-  mmcSendCmd(reg,0,0xFF);
-  //check response
-  if((rvalue=mmc_R1())==MMC_SUCCESS){
-    if(((char)(rvalue=mmc_token()))==MMC_START_DATA_BLOCK_TOKEN){
-      //get CSD data
-      rvalue=spiReadFrame(buffer,16);
-      // put CRC bytes (not really needed by us, but required by MMC)
-      spiSendByte(DUMMY_CHAR);
-      spiSendByte(DUMMY_CHAR);
+  rvalue=mmcSendCmd(reg,0,0xFF);
+  //check for error (probably DMA timeout)
+  if(rvalue==MMC_SUCCESS){
+    //check response
+    if((rvalue=mmc_R1(100))==MMC_SUCCESS){
+      if((rvalue=mmc_token(100))==(MMC_DATA_TOKEN_RESP|MMC_START_DATA_BLOCK_TOKEN)){
+        //get CSD data
+        rvalue=spiReadFrame(buffer,16);
+        // put CRC bytes (not really needed by us, but required by MMC)
+        spiSendByte(DUMMY_CHAR);
+        spiSendByte(DUMMY_CHAR);
+      }
     }
   }
   //deselect card
@@ -1154,9 +1177,14 @@ int mmcReadReg(unsigned char reg,unsigned char *buffer){
   return rvalue;
 }
 
-//return size in KB from CSD structure
+
+//define for number of bytes in a megabyte
+#define SD_B_IN_MB      (1024lu*1024lu)
+
+//return size in MB from CSD structure
+//MB is used because it results in smaller numbers
 unsigned long mmcGetCardSize(unsigned char *CSD){
-  unsigned long Csize;
+  unsigned long Csize,tmp;
   unsigned short mult,blocklen;
   //check CSD version
   switch(CSD[0]>>6){
@@ -1175,20 +1203,25 @@ unsigned long mmcGetCardSize(unsigned char *CSD){
       blocklen=CSD[5]&0x0F;             //CSD bits 80-83
       //calculate block length
       blocklen=1<<blocklen;
-      //compute size in KB
+      //compute size in MB
       //return ((Csize+1)*mult*blocklen)/1024;
-      //compute size in Bytes
-      return ((Csize+1)*mult*blocklen)/1024;
+      //calculate multiplication value
+      tmp=mult*blocklen;
+      //check if value is less than 
+      if(tmp<SD_B_IN_MB){
+        return ((Csize+1)*tmp)/SD_B_IN_MB;
+      }else{
+        return (Csize+1)/(SD_B_IN_MB/tmp);
+      }
     case 1:
       //version 2.0
       //get C_SIZE field
       Csize =CSD[9];                               //CSD bits 48-55
       Csize|=CSD[8]<<8;                            //CSD bits 56-63
       Csize|=((unsigned long)CSD[7]&0x3F)<<16;     //CSD bits 64-69
-      //compute size in KB
-      //return (Csize+1)512;
-      //size in bytes
-      return (Csize+1)*512*1024;
+      //size in MB
+      //return (Csize+1)*512*1024/SD_B_IN_MB;
+      return (Csize+1)/2;
     default:
       //error unknown version
       return 0;

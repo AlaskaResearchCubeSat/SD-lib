@@ -60,6 +60,12 @@ const char * SD_error_str(int error){
       return "ERROR DMA RX TIMEOUT";
     case MMC_CRC_FAIL_ERROR:
       return "ERROR CRC FAILED";
+    case MMC_TOKEN_TIMEOUT_ERROR:
+      return "ERROR TOKEN TIMEOUT";
+    case MMC_IDLE_TIMEOUT_ERROR:
+      return "ERROR IDLE TIMEOUT";
+    case MMC_INTERNAL_ERROR:
+      return "INTERNAL ERROR";
     //Other errors, Probably from SD card
     default:
       //check for errors from the card
@@ -105,6 +111,25 @@ const char * SD_error_str(int error){
                 return "ERROR CORRECTION CODE FAILED";
               case MMC_ERR_TOKEN_OUT_OF_RANGE:
                 return "ERROR OUT OF RANGE";
+            }
+          break;
+          case MMC_IDLE_RESP:
+            switch(error&MMC_CARD_MASK){
+              case MMC_R1_IDLE:
+                //code should never get here
+                return "INTERNAL INIT ERROR";
+              case MMC_R1_ERASE_RESET:
+                return "GO IDLE ERROR ERASE RESET";
+              case MMC_R1_ILLEGAL_CMD:
+                return "GO IDLE ILLEAGL COMMAND";
+              case MMC_R1_CRC_ERROR:
+                return "GO IDLE COMMAND CRC ERROR";
+              case MMC_R1_ERASE_SEQ_ERROR:
+                return "GO IDLE ERASE SEQUENCE ERROR";
+              case MMC_R1_ADDRESS_ERROR:
+                return "GO IDLE ERROR BAD ADDRESS";
+              case MMC_R1_PARAMETER_ERROR:
+                return "GO IDLE ERROR BAD PARAMETER";
             }
           break;
         }

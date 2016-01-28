@@ -9,6 +9,7 @@
 #define MMC_R1_RESPONSE         0x0100
 #define MMC_DATA_RESPONSE       0x0200
 #define MMC_DATA_TOKEN_RESP     0x0300
+#define MMC_IDLE_RESP           0x0400
 
 //mask to get response class
 #define MMC_RC_MASK             0xFF00
@@ -36,12 +37,16 @@
 #define MMC_DAT_CRC                     0x0B      //Data rejected due to a CRC error
 #define MMC_DAT_WRITE_ERR               0x0D      //Data rejected due to a Write Error
 
+//values for mmcReadReg
+#define MMC_REG_CSD                     (0x49)    //Card Specific Data register
+#define MMC_REG_CID                     (0x50)    //Card identification number
+
 //software defined return values
 enum{MMC_SUCCESS=0,MMC_TIMEOUT_ERROR=-1,MMC_DMA_TX_TIMEOUT_ERROR=-3,MMC_BUSY_TIMEOUT_ERROR=-4,
      MMC_LOCK_TIMEOUT_ERROR=-5,MMC_INVALID_CARD_SIZE=-6,MMC_CARD_UNINIT_ERROR=-7,MMC_MSP_UNINIT_ERROR=-8,
      MMC_INIT_ERR_CHECK_PATTERN=-9,MMC_INIT_ERR_VOLTAGE=-10,MMC_INIT_ERR_GO_IDLE=-11,MMC_INIT_ERR_TIMEOUT=-12,
      MMC_INIT_ERR_READ_OCR=-13,MMC_INIT_ERR_BLOCK_SIZE=-14,MMC_DMA_RX_TIMEOUT_ERROR=-15,MMC_CRC_FAIL_ERROR=-16,
-     MMC_LAST_ERR=-17};
+     MMC_TOKEN_TIMEOUT_ERROR=-17,MMC_IDLE_TIMEOUT_ERROR=-18,MMC_INTERNAL_ERROR=-19,MMC_LAST_ERR=-20};
 
 enum{MMC_SIZE_UNKNOWN=-1,MMC_SIZE_SDHC=1,MMC_SIZE_SDSC=2};
   
@@ -68,13 +73,10 @@ int mmcReInit_card(void);
 int mmcInit_card(void);
 
 // send command to MMC
-void mmcSendCmd (char cmd, unsigned long data, char crc);
+int mmcSendCmd (char cmd, unsigned long data, char crc);
 
 // set MMC in Idle mode
 int mmcGoIdle(void);
-
-// set MMC block length of count=2^n Byte
-int mmcSetBlockLength (unsigned long blocklength);
 
 //read a whole block from the card given a block number
 int mmcReadBlock(SD_block_addr addr,void *pBuffer);
