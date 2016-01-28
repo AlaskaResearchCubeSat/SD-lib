@@ -659,8 +659,8 @@ int mmc_busy(int num){
 
 //get R1 response followed by a busy signal
 int mmc_R1b(int r1_num,int busy_num){
-  int i;
-  unsigned char resp,rt;
+  int i,rt;
+  unsigned char resp;
   //get response
   rt=mmc_R1(r1_num);
   //check if there was an error
