@@ -78,9 +78,6 @@ int mmcSendCmd (char cmd, unsigned long data, char crc);
 // set MMC in Idle mode
 int mmcGoIdle(void);
 
-// set MMC block length of count=2^n Byte
-int mmcSetBlockLength (unsigned long blocklength);
-
 //read a whole block from the card given a block number
 int mmcReadBlock(SD_block_addr addr,void *pBuffer);
 
