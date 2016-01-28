@@ -270,14 +270,6 @@ int mmcReInit_card(void){
   if(resp==MMC_SUCCESS){
     //set SPI to fast speed
     SPI_fast();
-    //set block length of card
-    //TODO: this may not be needed, Think deep thoughts
-    if(mmcSetBlockLength(512) != MMC_SUCCESS){
-      //unlock card
-      mmcUnlock();
-      //return Error
-      return MMC_INIT_ERR_BLOCK_SIZE;
-    }
   }
   //unlock card
   mmcUnlock();
@@ -968,34 +960,6 @@ int mmcSendCmd (char cmd, unsigned long data,char crc)
   frame[5]=(crc);
   return spiSendFrame(frame,6);
 }
-
-
-//--------------- set blocklength 2^n ------------------------------------------------------
-//TODO: determine if this is usefull and delete
-//block size should be kept at the default of 512 for compatibility reasons
-int mmcSetBlockLength(unsigned long blocklength){
-  int rt,resp;
-  //get a lock on the card
-  if(resp=mmcLock(CTL_TIMEOUT_DELAY,10)){
-    return resp;
-  }
-  // CS = LOW (on)
-  CS_LOW ();
-  // Set the block length to read
-  rt=mmcSendCmd(MMC_SET_BLOCKLEN,blocklength,0xFF);
-  //check for error (probably a DMA timeout)
-  if(rt==MMC_SUCCESS){
-    //get R1 response
-    rt=mmc_R1(100);
-  }
-  // CS = HIGH (off)
-  CS_HIGH ();
-  // Send 8 Clock pulses of delay.
-  spiDummyClk();
-  //unlock card
-  mmcUnlock();
-  return rt;
-} // Set block_length
 
 //erase blocks from start to end
 int mmcErase(SD_block_addr start,SD_block_addr end){
