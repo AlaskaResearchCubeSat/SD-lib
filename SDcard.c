@@ -598,7 +598,7 @@ int mmc_R1b(int r1_num,int busy_num){
   //get response
   rt=mmc_R1(r1_num);
   //check if there was an error
-  if(resp==MMC_SUCCESS){
+  if(rt==MMC_SUCCESS){
     //wait for busy signal to go away
     for(i=0;i<busy_num;i++){
       //get byte
