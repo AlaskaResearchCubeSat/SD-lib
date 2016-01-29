@@ -41,6 +41,9 @@
 #define MMC_REG_CSD                     (0x49)    //Card Specific Data register
 #define MMC_REG_CID                     (0x50)    //Card identification number
 
+//dummy CRC value to tell mmcSendCmd to compute CRC
+#define MMC_RUNTIME_CRC                 (0x00)
+
 //software defined return values
 enum{MMC_SUCCESS=0,MMC_TIMEOUT_ERROR=-1,MMC_DMA_TX_TIMEOUT_ERROR=-3,MMC_BUSY_TIMEOUT_ERROR=-4,
      MMC_LOCK_TIMEOUT_ERROR=-5,MMC_INVALID_CARD_SIZE=-6,MMC_CARD_UNINIT_ERROR=-7,MMC_MSP_UNINIT_ERROR=-8,
