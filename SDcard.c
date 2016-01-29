@@ -349,7 +349,16 @@ int mmcGoIdle(void){
   //start new transaction
   SD_SEL();
   //Turn on CRC
-  mmcSendCmd(MMC_CRC_ON_OFF,1,0xFF);
+  resp=mmcSendCmd(MMC_CRC_ON_OFF,1,0x83);
+  //check for error (probably DMA timeout)
+  if(resp!=MMC_SUCCESS){
+    //deselect card
+    SD_DESEL();
+    //unlock card
+    mmcUnlock();
+    //return error
+    return resp;
+  }
   //response starts with R1
   resp=mmc_R1(100);
   //TOOD: check response
@@ -397,7 +406,7 @@ int mmcGoIdle(void){
       //start transaction
       SD_SEL();
       //next command is application spesific command
-      resp=mmcSendCmd(MMC_APP_CMD,0,0xff);
+      resp=mmcSendCmd(MMC_APP_CMD,0,0x65);
       //check for error (probably DMA timeout)
       if(resp!=MMC_SUCCESS){
         //deselect card
@@ -412,7 +421,7 @@ int mmcGoIdle(void){
       //check for error
       if((resp&(~MMC_R1_IDLE))==MMC_SUCCESS){
         //send host capacity information
-        resp=mmcSendCmd(MMC_SD_SEND_OP_COND,MMC_HCS,0xFF);
+        resp=mmcSendCmd(MMC_SD_SEND_OP_COND,MMC_HCS,0x77);
         //check for error (probably DMA timeout)
         if(resp!=MMC_SUCCESS){
           //deselect card
@@ -462,7 +471,7 @@ int mmcGoIdle(void){
       //start transaction
       SD_SEL();
       //next command is application spesific command
-      resp=mmcSendCmd(MMC_APP_CMD,0,0xff);
+      resp=mmcSendCmd(MMC_APP_CMD,0,0x65);
       //check for error (probably DMA timeout)
       if(resp!=MMC_SUCCESS){
         //deselect card
@@ -477,7 +486,7 @@ int mmcGoIdle(void){
       //check for error
       if((((char)resp)&(~MMC_R1_IDLE))==MMC_SUCCESS){
         //send host capacity information
-        resp=mmcSendCmd(MMC_SD_SEND_OP_COND,MMC_HCS,0xFF);        
+        resp=mmcSendCmd(MMC_SD_SEND_OP_COND,MMC_HCS,0x77);        
         //check for error (probably DMA timeout)
         if(resp!=MMC_SUCCESS){
           //deselect card
@@ -508,7 +517,7 @@ int mmcGoIdle(void){
     //get response
     resp=mmc_R1(100);
     //read OCR to check CCS bit
-    resp=mmcSendCmd(MMC_READ_OCR,0,0xFF);
+    resp=mmcSendCmd(MMC_READ_OCR,0,0xFD);
     //check for error (probably DMA timeout)
     if(resp!=MMC_SUCCESS){
       //deselect card
@@ -737,7 +746,7 @@ int mmcReadBlock(SD_block_addr addr,void *pBuffer){
   // CS = LOW (on)
   SD_SEL ();
   // send read command MMC_READ_SINGLE_BLOCK=CMD17
-  rvalue=mmcSendCmd(MMC_READ_SINGLE_BLOCK,addr, 0xFF);
+  rvalue=mmcSendCmd(MMC_READ_SINGLE_BLOCK,addr,MMC_RUNTIME_CRC);
   //check for error (probably DMA timeout)
   if(rvalue==MMC_SUCCESS){
     //Get R1 response
@@ -801,7 +810,7 @@ int mmcReadBlocks(SD_block_addr addr,unsigned short count,void *pBuffer){
   // CS = LOW (on)
   SD_SEL ();
   // send read command MMC_READ_SINGLE_BLOCK=CMD17
-  rvalue=mmcSendCmd(MMC_READ_MULTIPLE_BLOCK,addr, 0xFF);
+  rvalue=mmcSendCmd(MMC_READ_MULTIPLE_BLOCK,addr,MMC_RUNTIME_CRC);
   //check response (probably DMA timeout)
   if(rvalue==MMC_SUCCESS){
     //Get R1 response from card
@@ -837,7 +846,7 @@ int mmcReadBlocks(SD_block_addr addr,unsigned short count,void *pBuffer){
         }
       }
       //send stop transmission command
-      rt=mmcSendCmd(MMC_STOP_TRANSMISSION,0,0xFF);
+      rt=mmcSendCmd(MMC_STOP_TRANSMISSION,0,0x61);
       //check for error (probably DMA error)
       if(rt==MMC_SUCCESS){
         //check return value
@@ -897,7 +906,7 @@ int mmcWriteBlock(SD_block_addr addr,const void *pBuffer){
   // CS = LOW (on)
   SD_SEL ();
   // send write command
-  rvalue=mmcSendCmd(MMC_WRITE_BLOCK,addr, 0xFF);
+  rvalue=mmcSendCmd(MMC_WRITE_BLOCK,addr,MMC_RUNTIME_CRC);
   //check for error (probably DMA timeout)
   if(rvalue == MMC_SUCCESS){
     //check R1 response for no errors
@@ -925,7 +934,7 @@ int mmcWriteBlock(SD_block_addr addr,const void *pBuffer){
         // CS = LOW (on)
         SD_SEL ();
         //CRC error, read status to clear
-        mmcSendCmd(MMC_SEND_STATUS,0,0xFF);
+        mmcSendCmd(MMC_SEND_STATUS,0,0x0D);
         //get response
         mmc_R2();
       }
@@ -972,7 +981,7 @@ int mmcWriteMultiBlock(SD_block_addr addr,const void *pBuffer,unsigned short blo
   SD_SEL ();
   
   // send write command
-  rvalue=mmcSendCmd(MMC_WRITE_MULTIPLE_BLOCK,addr, 0xFF);
+  rvalue=mmcSendCmd(MMC_WRITE_MULTIPLE_BLOCK,addr,MMC_RUNTIME_CRC);
   //check for errors
   if(rvalue==MMC_SUCCESS){ 
     //check for errors
@@ -995,7 +1004,7 @@ int mmcWriteMultiBlock(SD_block_addr addr,const void *pBuffer,unsigned short blo
         //an error occurred, abort transmission
         if(((char)rvalue)!=MMC_DAT_ACCEPTED){
           //send stop transmission command
-          mmcSendCmd(MMC_STOP_TRANSMISSION,0,0xFF);
+          mmcSendCmd(MMC_STOP_TRANSMISSION,0,0x61);
           //get R1 response with busy signal
           //keep the response that generated the error
           mmc_R1b(100,400); 
@@ -1046,7 +1055,14 @@ int mmcSendCmd (char cmd, unsigned long data,char crc)
   frame[2]=(data>>(16));
   frame[3]=(data>>(8));
   frame[4]=(data);
-  frame[5]=crc7(frame,5);
+  //check if CRC is valid
+  if(crc==MMC_RUNTIME_CRC){
+    //calculate CRC
+    frame[5]=crc7(frame,5);
+  }else{
+    //set CRC
+    frame[5]=crc;
+  }
   return spiSendFrame(frame,6);
 }
 
@@ -1075,19 +1091,19 @@ int mmcErase(SD_block_addr start,SD_block_addr end){
   SD_SEL ();
   
   //send erase block start
-  rvalue=mmcSendCmd(MMC_ERASE_WR_BLK_START,start,0xFF);
+  rvalue=mmcSendCmd(MMC_ERASE_WR_BLK_START,start,MMC_RUNTIME_CRC);
   //check for error (probably DMA timeout)
   if(rvalue==MMC_SUCCESS){
     //check for correct response
     if((rvalue=mmc_R1(100))==MMC_SUCCESS){
       //send erase block end
-      rvalue=mmcSendCmd(MMC_ERASE_WR_BLK_END,end,0xFF);
+      rvalue=mmcSendCmd(MMC_ERASE_WR_BLK_END,end,MMC_RUNTIME_CRC);
       //check for error (probably DMA timeout)
       if(rvalue==MMC_SUCCESS){
         //check for correct response
         if((rvalue=mmc_R1(100))==MMC_SUCCESS){
           //send erase command
-          rvalue=mmcSendCmd(MMC_EREASE,0,0xFF);          
+          rvalue=mmcSendCmd(MMC_EREASE,0,0xA5);          
           //check for error (probably DMA timeout)
           if(rvalue==MMC_SUCCESS){
             //get R1b response
@@ -1117,7 +1133,7 @@ int mmcReadReg(unsigned char reg,unsigned char *buffer){
   //select
   SD_SEL ();
   //send read CSD
-  rvalue=mmcSendCmd(reg,0,0xFF);
+  rvalue=mmcSendCmd(reg,0,MMC_RUNTIME_CRC);
   //check for error (probably DMA timeout)
   if(rvalue==MMC_SUCCESS){
     //check response
