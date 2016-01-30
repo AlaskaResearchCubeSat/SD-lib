@@ -32,9 +32,13 @@
 #define MMC_PxSEL1        P3SEL      
 #define MMC_PxOUT1        P3OUT
 #define MMC_PxREN1        P3REN
+#define MMC_PxDIR1        P3DIR
+  
 #define MMC_PxSEL0        P5SEL    
 #define MMC_PxOUT0        P5OUT
 #define MMC_PxREN0        P5REN
+#define MMC_PxDIR0        P5DIR
+  
 #define MMC_SIMO          BIT6       //P3.6
 #define MMC_SOMI          BIT7       //P3.7
 #define MMC_UCLK          BIT0       //P5.0
@@ -63,11 +67,13 @@
   #define MMC_PxSEL1        P5SEL    
   #define MMC_PxOUT1        P5OUT
   #define MMC_PxREN1        P5REN
+  #define MMC_PxDIR1        P5DIR
   //two seperate ports needed because UCA1 is split across two ports
   //becasue UCB1 is all on one port the above deffinitions are repeated here
   #define MMC_PxSEL0        P5SEL    
   #define MMC_PxOUT0        P5OUT
   #define MMC_PxREN0        P5REN
+  #define MMC_PxDIR0        P5DIR
 
   #define MMC_SIMO          BIT1  //P5.1
   #define MMC_SOMI          BIT2  //P5.2
@@ -105,7 +111,11 @@
 
 //definitions for chip select pin
 #define CS_LOW()    (MMC_CS_PxOUT &= ~MMC_CS)               // Card Select
+#define CS_HIGH()   (MMC_CS_PxOUT |= MMC_CS)                // Card Deselect
+
+//definitions card select
+#define SD_SEL()    CS_LOW()               // Card Select
 //TODO: this seems like bad practice, fix
-#define CS_HIGH()   while(!SPITXDONE); MMC_CS_PxOUT |= MMC_CS  // Card Deselect
+#define SD_DESEL()   do{while(!SPITXDONE);CS_HIGH();}while(0)  // Card Deselect
 
 #endif

@@ -1,7 +1,7 @@
 <!DOCTYPE CrossStudio_Project_File>
 <solution Name="SD-lib" target="9" version="2">
   <project Name="SD-lib">
-    <configuration Name="Common" batch_build_configurations="UCA1 Debug;UCA1 Release;UCB1 Debug;UCB1 Release" project_directory="" project_type="Library"/>
+    <configuration Name="Common" libctl="Yes" batch_build_configurations="UCA1 Debug;UCA1 Release;UCB1 Debug;UCB1 Release" project_directory="" project_type="Library"/>
     <folder Name="Source Files">
       <configuration Name="Common" filter="c;h;s;asm;inc;s43"/>
       <file file_name="MMC.h"/>
@@ -16,7 +16,7 @@
   <configuration Name="MSP430" Platform="MSP430" hidden="Yes"/>
   <configuration Name="Debug" build_debug_information="Yes" hidden="Yes"/>
   <configuration Name="Release" build_debug_information="No" c_preprocessor_definitions="NDEBUG" hidden="Yes" optimize_block_locality="Yes" optimize_copy_propagation="Yes" optimize_cross_calling="Standard" optimize_cross_jumping="Yes" optimize_dead_code="Yes" optimize_jump_chaining="Yes" optimize_jump_threading="Yes" optimize_tail_merging="Yes"/>
-  <configuration Name="Common" Target="MSP430F2618" batch_build_configurations="MSP430 Debug;MSP430 Debug CDH;MSP430 Release;MSP430 Release CDH" build_use_hardware_multiplier="16-Bit Multiplier" c_additional_options="" c_preprocessor_definitions="" c_system_include_directories="$(StudioDir)/include;$(PackagesDir)/include;$(StudioDir)/ctl/include/;Z:/Software/include/" linker_DebugIO_enabled="No" linker_memory_map_file="$(PackagesDir)/targets/msp430/MSP430F2618.xml" linker_section_placement_file="$(StudioDir)/targets/section_placement_info_abcd_iv32.xml" msp430_debug_interface="JTAG" msp430_identify_string="MSP430F2618" msp430_insn_set="MSP430X" optimize_tail_merging="Yes"/>
+  <configuration Name="Common" Target="MSP430F2618" batch_build_configurations="MSP430 Debug;MSP430 Debug CDH;MSP430 Release;MSP430 Release CDH" build_use_hardware_multiplier="16-Bit Multiplier" c_additional_options="" c_preprocessor_definitions="" c_system_include_directories="$(StudioDir)/include;$(PackagesDir)/include;$(StudioDir)/ctl/include/;Z:/Software-old/include/" linker_DebugIO_enabled="No" linker_memory_map_file="$(PackagesDir)/targets/msp430/MSP430F2618.xml" linker_section_placement_file="$(StudioDir)/targets/section_placement_info_abcd_iv32.xml" msp430_debug_interface="JTAG" msp430_identify_string="MSP430F2618" msp430_insn_set="MSP430X" optimize_tail_merging="Yes"/>
   <configuration Name="DMA" c_preprocessor_definitions="withDMA" hidden="Yes"/>
   <configuration Name="UCA1" c_additional_options="" c_preprocessor_definitions="SER_USE_UCA1" hidden="Yes"/>
   <configuration Name="UCB1" c_preprocessor_definitions="SER_USE_UCB1" hidden="Yes"/>
@@ -24,4 +24,21 @@
   <configuration Name="UCB1 Debug" inherited_configurations="Debug;MSP430;UCB1"/>
   <configuration Name="UCA1 Release" inherited_configurations="DMA;MSP430;Release;UCA1"/>
   <configuration Name="UCB1 Release" inherited_configurations="MSP430;Release;UCB1"/>
+  <project Name="error-only">
+    <configuration Name="UCA1" c_preprocessor_definitions="SER_USE_UCA1" />
+    <configuration
+      Name="Common"
+	  libctl="Yes"
+      project_directory=""
+      project_type="Library" />
+    <folder Name="Source Files">
+      <file file_name="errorStr.c"/>
+    </folder>
+  </project>
+  <configuration
+    Name="MSP430 Debug"
+    inherited_configurations="MSP430;Debug;UCA1" />
+  <configuration
+    Name="MSP430 Release"
+    inherited_configurations="MSP430;Release;UCA1" />
 </solution>

@@ -20,9 +20,10 @@ void SPISetup (void);
 void SPI_fast(void);
 void SPI_slow(void);
 unsigned char spiSendByte(const unsigned char data);
-unsigned char spiReadFrame(unsigned char* pBuffer, unsigned int size);
-unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size);
+int spiReadFrame(unsigned char* pBuffer, unsigned int size);
+int spiSendFrame(const unsigned char* pBuffer, unsigned int size);
 void spiDummyClk(void);
+void SPIShutdown(void);
 
 #endif
 

@@ -96,6 +96,12 @@ void SPI_slow(void){
   UCA1CTL1&=~UCSWRST;                     //pull interface out of reset state
 }
 
+//shutdown SPI peripheral
+void SPIShutdown(void){
+  //put peripheral in reset state
+  UCA1CTL1 =UCSWRST;
+}
+
 
 #elif SPI_SER_INTF == SER_INTF_UCB1
 
@@ -124,6 +130,11 @@ void SPI_slow(void){
   UCB1CTL1&=~UCSWRST;                     //pull interface out of reset state
 }
 
+void SPIShutdown(void){
+  //put peripheral in reset state
+  UCB1CTL1 =UCSWRST;
+}
+
 #endif
 
 //Send one byte via SPI
@@ -144,7 +155,7 @@ void spiDummyClk(void){
 }
 
 //Read a frame of bytes via SPI
-unsigned char spiReadFrame(unsigned char* pBuffer, unsigned int size)
+int spiReadFrame(unsigned char* pBuffer, unsigned int size)
 {
 #ifndef withDMA
   unsigned long i = 0;
@@ -188,12 +199,12 @@ unsigned char spiReadFrame(unsigned char* pBuffer, unsigned int size)
       return MMC_DMA_TIMEOUT_ERROR;
     }
 #endif
-  return 0;
+  return MMC_SUCCESS;
 }
 
 
 //Send a frame of bytes via SPI
-unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size)
+int spiSendFrame(const unsigned char* pBuffer, unsigned int size)
 {
 #ifndef withDMA
   unsigned long i = 0;
@@ -233,6 +244,6 @@ unsigned char spiSendFrame(const unsigned char* pBuffer, unsigned int size)
         return MMC_DMA_TIMEOUT_ERROR;
       }
 #endif
-  return 0;
+  return MMC_SUCCESS;
 }
 

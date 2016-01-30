@@ -3,7 +3,5 @@
 *.hzs
 
 #build directories
-UCA1 Debug/
-UCA1 Release/
-UCB1 Debug/
-UCB1 Release/
+* UC* Debug/
+* UC* Release/
