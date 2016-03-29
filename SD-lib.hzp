@@ -5,6 +5,8 @@
       Name="Common"
       batch_build_configurations="UCA1 Debug;UCA1 Release;UCA2 Debug;UCA2 Release;UCA3 Debug;UCA3 Release;UCB1 Debug;UCB1 Release"
       project_directory=""
+      macros="ARC_prefix=Z:/ARC-2/ARC2-Software"
+      libctl="Yes"
       project_type="Library" />
     <folder Name="Source Files">
       <configuration Name="Common" filter="c;h;s;asm;inc;s43" />
@@ -38,7 +40,7 @@
     Target="MSP430F6779A"
     batch_build_configurations="MSP430 Debug;MSP430 Debug CDH;MSP430 Release;MSP430 Release CDH"
     c_preprocessor_definitions="CTL_TASKING"
-    c_system_include_directories="$(StudioDir)/include;$(PackagesDir)/include;$(PackagesDir)/libraries/libctl/include/;Z:/Software/include/"
+    c_system_include_directories="$(StudioDir)/include;$(PackagesDir)/include;$(PackagesDir)/libraries/libctl/include/;$(ARC_prefix)/include/"
     linker_DebugIO_enabled="No"
     msp430_debug_interface="JTAG"
     msp430_identify_string="MSP430F6779A"
