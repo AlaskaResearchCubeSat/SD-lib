@@ -100,9 +100,17 @@ void SPIShutdown(void){
 
 //Send one byte via SPI
 unsigned char spiSendByte(const unsigned char data){
+  int i=0;
   while(!SPITXREADY);    // wait while not ready for TX
   SPI_SEND(data);            // write
-  while(!SPIRXREADY);    // wait for RX buffer (full) 
+  while(!SPIRXREADY){
+  //Morgan added this code, SPI stalls here and MSP doesn't generate a RXREADY flag 
+    i++; 
+    if(i==20000){
+    printf("SPI failed to get SPIRXREADY");
+    break;
+    }
+  }
   return (SPIRXBUF);
 }
 
